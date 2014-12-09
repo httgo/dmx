@@ -1,0 +1,10 @@
+language: go
+install:
+  - go get github.com/nowk/assert
+  - go get github.com/nowk/urlp
+go:
+  - "1.0"
+  - "1.1"
+  - "1.2"
+  - "1.3"
+  - "tip"
