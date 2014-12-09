@@ -30,7 +30,6 @@ func TestMethodPatDuplicationPanics(t *testing.T) {
 				func() {
 					mux.Add(v, hfunc(""), "POST", "POST")
 				})
-			assert.Equal(t, 1, mux.Len())
 		}
 		{
 			mux := New()
@@ -39,7 +38,6 @@ func TestMethodPatDuplicationPanics(t *testing.T) {
 					mux.Add(v+"/", hfunc(""), "POST")
 					mux.Add(v, hfunc(""), "POST")
 				})
-			assert.Equal(t, 1, mux.Len())
 		}
 		{
 			mux := New()
@@ -48,7 +46,6 @@ func TestMethodPatDuplicationPanics(t *testing.T) {
 					mux.Add(v, hfunc(""), "POST")
 					mux.Add(v+"/", hfunc(""), "POST")
 				})
-			assert.Equal(t, 1, mux.Len())
 		}
 	}
 }

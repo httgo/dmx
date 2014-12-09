@@ -57,11 +57,6 @@ func New() *mux {
 	}
 }
 
-// Len returns the number of resources in the current mux
-func (m *mux) Len() int {
-	return len(m.handlers)
-}
-
 // trim takes off the trailing /
 func trim(s string) string {
 	s = strings.TrimRight(s, "/")
