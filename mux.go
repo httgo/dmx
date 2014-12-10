@@ -112,9 +112,9 @@ func params(p []string, u *url.URL) {
 	}
 }
 
-func methodsAllowed(h mux, req *http.Request) ([]string, bool) {
+func methodsAllowed(m mux, req *http.Request) ([]string, bool) {
 	var meths []string
-	for k, v := range h {
+	for k, v := range m {
 		if k != req.Method {
 			_, _, ok := Match(v, req.URL.Path)
 			if ok {
