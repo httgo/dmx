@@ -14,7 +14,7 @@ func hfunc(s string) http.Handler {
 	})
 }
 
-func TestMethodPatDuplicationPanics(t *testing.T) {
+func TestMethodPatternDuplicationPanics(t *testing.T) {
 	for _, v := range []string{
 		"",
 		"/posts",
@@ -52,32 +52,39 @@ func TestMethodPatDuplicationPanics(t *testing.T) {
 
 func TestDispatchesToMatchingResource(t *testing.T) {
 	mux := New()
-	mux.Add("/", hfunc("GET /"), "GET")
-	mux.Add("/posts/:id", hfunc("POST /posts/:id"), "POST", "PUT")
-	mux.Add("/posts/:id", hfunc("GET /posts/:id"), "GET")
+	mux.Add("/", hfunc(""), "GET")
+	mux.Add("/posts/:id", hfunc(""), "POST", "PUT")
+	mux.Add("/posts/:id", hfunc(""), "GET")
 
 	for _, v := range []struct {
-		m, u, b string
+		m, u string
+		c    int
 	}{
-		{"GET", "/", "GET /"},
-		{"GET", "/posts", "Not Found\n"},
-		{"GET", "/posts/", "Not Found\n"},
-		{"GET", "/posts/123", "GET /posts/:id"},
-		{"GET", "/posts/123/", "GET /posts/:id"},
-		{"POST", "/posts/123", "POST /posts/:id"},
-		{"POST", "/posts/123/", "POST /posts/:id"},
-		{"PUT", "/posts/123", "POST /posts/:id"},
-		{"PUT", "/posts/123/", "POST /posts/:id"},
+		{"GET", "/", 200},
+
+		{"GET", "/posts", 404},
+		{"GET", "/posts/", 404},
+
+		{"GET", "/posts/123", 200},
+		{"GET", "/posts/123/", 200},
+
+		{"POST", "/posts/123", 200},
+		{"POST", "/posts/123/", 200},
+
+		{"PUT", "/posts/123", 200},
+		{"PUT", "/posts/123/", 200},
+
+		{"DELETE", "/posts/123", 405},
+		{"DELETE", "/posts/123/", 405},
 	} {
-		u := fmt.Sprintf("http://www.com%s", v.u)
 		w := httptest.NewRecorder()
-		req, err := http.NewRequest(v.m, u, nil)
+		req, err := http.NewRequest(v.m, fmt.Sprintf("http://www.com%s", v.u), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		mux.ServeHTTP(w, req)
-		assert.Equal(t, v.b, w.Body.String(), v.m, ":", v.u, ":", w.Code)
+		assert.Equal(t, v.c, w.Code)
 	}
 }
 
