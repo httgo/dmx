@@ -78,23 +78,25 @@ func (m *mux) Add(pat string, h http.Handler, meth ...string) {
 	}
 }
 
+func params(p []string, u *url.URL) {
+	l := len(p)
+	for i, _ := range p {
+		n := i + 1
+		if n >= l {
+			break
+		}
+		u.RawQuery += "&" + p[i] + "=" + p[n]
+	}
+}
+
 // match matches a path to a resource's path pattern
 func match(r []*resource, u *url.URL) (*resource, bool) {
 	for _, v := range r {
-		m, ok := v.m.Match(u.Path)
+		p, ok := v.m.Match(u.Path)
 		if !ok {
 			continue
 		}
-
-		l := len(m)
-		for i, _ := range m {
-			n := i + 1
-			if n >= l {
-				break
-			}
-
-			u.RawQuery += "&" + m[i] + "=" + m[n]
-		}
+		params(p, u)
 
 		return v, ok
 	}
@@ -135,13 +137,10 @@ func allowed(h resources, req *http.Request) ([]string, bool) {
 		}
 
 		_, ok := match(v, req.URL)
-		if !ok {
-			continue
+		if ok {
+			meths = append(meths, k)
 		}
-
-		meths = append(meths, k)
 	}
-
 	if len(meths) == 0 {
 		return nil, false
 	}
