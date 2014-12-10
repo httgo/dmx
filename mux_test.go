@@ -84,7 +84,7 @@ func TestDispatchesToMatchingResource(t *testing.T) {
 		}
 
 		mux.ServeHTTP(w, req)
-		assert.Equal(t, v.c, w.Code)
+		assert.Equal(t, v.c, w.Code, v.m, " ", v.u)
 	}
 }
 
