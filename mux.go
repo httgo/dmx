@@ -149,3 +149,37 @@ func allowed(h resources, req *http.Request) ([]string, bool) {
 
 	return meths, true
 }
+
+func (m *mux) Get(pat string, h http.Handler) {
+	m.Add(pat, h, "GET")
+}
+
+// Geth registers both a head and get handler
+func (m *mux) Geth(pat string, h http.Handler) {
+	m.Add(pat, h, "HEAD", "GET")
+}
+
+func (m *mux) Head(pat string, h http.Handler) {
+	m.Add(pat, h, "HEAD")
+}
+
+func (m *mux) Post(pat string, h http.Handler) {
+	m.Add(pat, h, "POST")
+}
+
+func (m *mux) Put(pat string, h http.Handler) {
+	m.Add(pat, h, "PUT")
+}
+
+// Putp registers both a put and patch handler
+func (m *mux) Putp(pat string, h http.Handler) {
+	m.Add(pat, h, "PUT", "PATCH")
+}
+
+func (m *mux) Patch(pat string, h http.Handler) {
+	m.Add(pat, h, "PATCH")
+}
+
+func (m *mux) Del(pat string, h http.Handler) {
+	m.Add(pat, h, "DELETE")
+}
