@@ -5,6 +5,25 @@
 
 A simple pattern match mux
 
+## Example
+
+    mux := mountn.New()
+    mux.Get("/posts/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+      v := req.URL.Query()
+      id := v.Get(":id")
+
+      // ...
+    }))
+
+    mux.Post("/posts", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+      // ...
+    }))
+
+    mux.Add("/posts/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+      // ...
+    }), "PUT", "PATCH")
+
+
 ## License
 
 MIT
