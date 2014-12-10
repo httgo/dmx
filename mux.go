@@ -1,4 +1,4 @@
-package mountn
+package dmx
 
 import (
 	"fmt"

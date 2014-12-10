@@ -1,13 +1,13 @@
-# mountn
+# dmx
 
-[![Build Status](https://travis-ci.org/nowk/mountn.svg?branch=master)](https://travis-ci.org/nowk/mountn)
-[![GoDoc](https://godoc.org/github.com/nowk/mountn?status.svg)](http://godoc.org/github.com/nowk/mountn)
+[![Build Status](https://travis-ci.org/nowk/dmx.svg?branch=master)](https://travis-ci.org/nowk/dmx)
+[![GoDoc](https://godoc.org/github.com/nowk/dmx?status.svg)](http://godoc.org/github.com/nowk/dmx)
 
 A simple pattern match mux
 
 ## Example
 
-    mux := mountn.New()
+    mux := dmx.New()
     mux.Get("/posts/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
       v := req.URL.Query()
       id := v.Get(":id")
