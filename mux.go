@@ -10,17 +10,18 @@ import (
 )
 
 type resource struct {
+	http.Handler
+
 	pat string
 	m   urlp.Matcher
-	h   http.Handler
 }
 
 // NewResource returns a resource with a preconditioned matcher
 func NewResource(pat string, h http.Handler) *resource {
 	return &resource{
-		pat: pat,
-		m:   urlp.NewMatcher(pat),
-		h:   h,
+		pat:     pat,
+		m:       urlp.NewMatcher(pat),
+		Handler: h,
 	}
 }
 
@@ -125,7 +126,7 @@ func (m *mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	params(p, req.URL)
 
-	res.h.ServeHTTP(w, req)
+	res.ServeHTTP(w, req)
 }
 
 // allowed returns methods for resources that match the current request path
