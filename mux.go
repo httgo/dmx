@@ -86,8 +86,14 @@ func match(r []*resource, u *url.URL) (*resource, bool) {
 			continue
 		}
 
-		for k, v := range m {
-			u.RawQuery += "&" + k + "=" + v
+		l := len(m)
+		for i, _ := range m {
+			n := i + 1
+			if n >= l {
+				break
+			}
+
+			u.RawQuery += "&" + m[i] + "=" + m[n]
 		}
 
 		return v, ok
