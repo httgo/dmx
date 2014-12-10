@@ -89,19 +89,17 @@ func params(p []string, u *url.URL) {
 	}
 }
 
-// match matches a path to a resource's path pattern
-func match(r []*resource, u *url.URL) (*resource, bool) {
+// match matches a url.Path to a path pattern, returning the resource and
+// params
+func match(r []*resource, u *url.URL) (*resource, []string, bool) {
 	for _, v := range r {
 		p, ok := v.m.Match(u.Path)
-		if !ok {
-			continue
+		if ok {
+			return v, p, ok
 		}
-		params(p, u)
-
-		return v, ok
 	}
 
-	return nil, false
+	return nil, nil, false
 }
 
 func (m *mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -119,11 +117,13 @@ func (m *mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	res, ok := match(r, req.URL)
+	res, p, ok := match(r, req.URL)
 	if !ok {
 		http.Error(w, http.StatusText(404), 404)
 		return
 	}
+
+	params(p, req.URL)
 
 	res.h.ServeHTTP(w, req)
 }
@@ -136,7 +136,7 @@ func allowed(h resources, req *http.Request) ([]string, bool) {
 			continue
 		}
 
-		_, ok := match(v, req.URL)
+		_, _, ok := match(v, req.URL)
 		if ok {
 			meths = append(meths, k)
 		}
