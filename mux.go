@@ -11,54 +11,55 @@ import (
 
 type resource struct {
 	http.Handler
+	urlp.Matcher
 
 	pat string
-	m   urlp.Matcher
 }
 
-// NewResource returns a resource with a preconditioned matcher
+// NewResource returns a resource with a preconditioned matcher from the pattern
 func NewResource(pat string, h http.Handler) *resource {
 	return &resource{
-		pat:     pat,
-		m:       urlp.NewMatcher(pat),
-		Handler: h,
+		h,
+		urlp.NewMatcher(pat),
+		pat,
 	}
 }
 
-// resources are collection of resources bound to a method
-type resources map[string][]*resource
+// mux is a collection of method bound resources
+type mux map[string][]*resource
 
-// Add adds a resource bound to a method + pattern. Returns an error if a
-// duplicate method + pattern already exists
-func (r resources) Add(meth, pat string, h http.Handler) error {
+func New() mux {
+	return make(mux)
+}
+
+// add adds a new resource given a single method, patter and handler. Returning
+// and error on a pattern + method duplication
+func (r mux) add(meth, pat string, h http.Handler) error {
 	m, ok := r[meth]
 	if ok {
 		for _, v := range m {
-			if v.pat != pat {
-				continue
+			if v.pat == pat {
+				return fmt.Errorf("error: mux: %s %s is already defined", meth, v.pat)
 			}
-
-			return fmt.Errorf("error: mux: %s %s is already defined", meth, v.pat)
 		}
 	}
 
 	r[meth] = append(r[meth], NewResource(pat, h))
-
 	return nil
 }
 
-// mux structure
-type mux struct {
-	handlers resources
-}
-
-func New() *mux {
-	return &mux{
-		handlers: make(resources),
+// Add adds a new resource given the pattern, handler and one or more methods.
+// Panics on a pattern + method duplication
+func (m mux) Add(pat string, h http.Handler, meth ...string) {
+	for _, v := range meth {
+		err := m.add(v, trim(pat), h)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
-// trim takes off the trailing /
+// trim trims the trailing slash. Will always return atleast "/"
 func trim(s string) string {
 	s = strings.TrimRight(s, "/")
 	if s == "" {
@@ -68,33 +69,9 @@ func trim(s string) string {
 	return s
 }
 
-// Add a handler bound to a path pattern and one or more methods. It panics if
-// adding a handler returns an error due to a duplication method + pattern
-func (m *mux) Add(pat string, h http.Handler, meth ...string) {
-	for _, v := range meth {
-		err := m.handlers.Add(v, trim(pat), h)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
-func params(p []string, u *url.URL) {
-	l := len(p)
-	for i, _ := range p {
-		n := i + 1
-		if n >= l {
-			break
-		}
-		u.RawQuery += "&" + p[i] + "=" + p[n]
-	}
-}
-
-// match matches a url.Path to a path pattern, returning the resource and
-// params
-func match(r []*resource, u *url.URL) (*resource, []string, bool) {
+func Match(r []*resource, pathStr string) (*resource, []string, bool) {
 	for _, v := range r {
-		p, ok := v.m.Match(u.Path)
+		p, ok := v.Match(pathStr)
 		if ok {
 			return v, p, ok
 		}
@@ -103,51 +80,54 @@ func match(r []*resource, u *url.URL) (*resource, []string, bool) {
 	return nil, nil, false
 }
 
-func (m *mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r, ok := m.handlers[req.Method]
+// ServeHTTP implements http.Handler
+func (m mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	r, ok := m[req.Method]
 	if !ok {
 		c := 404
-
-		meths, ok := allowed(m.handlers, req)
-		if ok {
+		if meths, ok := methodsAllowed(m, req); ok {
 			c = 405
 			w.Header().Add("Allow", strings.Join(meths, ", "))
 		}
-
 		http.Error(w, http.StatusText(c), c)
 		return
 	}
 
-	res, p, ok := match(r, req.URL)
+	res, p, ok := Match(r, req.URL.Path)
 	if !ok {
 		http.Error(w, http.StatusText(404), 404)
 		return
 	}
 
 	params(p, req.URL)
-
 	res.ServeHTTP(w, req)
 }
 
-// allowed returns methods for resources that match the current request path
-func allowed(h resources, req *http.Request) ([]string, bool) {
+func params(p []string, u *url.URL) {
+	i := 0
+	l := len(p)
+	for i < l {
+		u.RawQuery = u.RawQuery + "&" + p[i] + "=" + p[i+1]
+		i = i + 2
+	}
+}
+
+func methodsAllowed(h mux, req *http.Request) ([]string, bool) {
 	var meths []string
 	for k, v := range h {
-		if k == req.Method {
-			continue
-		}
-
-		_, _, ok := match(v, req.URL)
-		if ok {
-			meths = append(meths, k)
+		if k != req.Method {
+			_, _, ok := Match(v, req.URL.Path)
+			if ok {
+				meths = append(meths, k)
+			}
 		}
 	}
+
 	if len(meths) == 0 {
 		return nil, false
 	}
 
 	sort.Strings(meths)
-
 	return meths, true
 }
 
