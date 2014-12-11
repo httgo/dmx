@@ -78,22 +78,31 @@ func Match(r []*resource, pathStr string) (*resource, []string, bool) {
 	return nil, nil, false
 }
 
+// notFound handles 404 and 405 errors looking up the path in other method sets
+// and returns an Allow header if the path is allowed on other methods
+func (m mux) notFound(w http.ResponseWriter, req *http.Request) {
+	c := 404
+
+	meths, ok := methodsAllowed(m, req)
+	if ok {
+		c = 405
+		w.Header().Add("Allow", strings.Join(meths, ", "))
+	}
+
+	http.Error(w, http.StatusText(c), c)
+}
+
 // ServeHTTP implements http.Handler
 func (m mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	r, ok := m[req.Method]
 	if !ok {
-		c := 404
-		if meths, ok := methodsAllowed(m, req); ok {
-			c = 405
-			w.Header().Add("Allow", strings.Join(meths, ", "))
-		}
-		http.Error(w, http.StatusText(c), c)
+		m.notFound(w, req)
 		return
 	}
 
 	res, p, ok := Match(r, req.URL.Path)
 	if !ok {
-		http.Error(w, http.StatusText(404), 404)
+		m.notFound(w, req)
 		return
 	}
 

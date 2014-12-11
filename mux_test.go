@@ -52,39 +52,70 @@ func TestMethodPatternDuplicationPanics(t *testing.T) {
 
 func TestDispatchesToMatchingResource(t *testing.T) {
 	mux := New()
+	mux.Add("/posts/:post_id/comments/:id", hfunc(""), "PUT", "PATCH")
+	mux.Add("/posts/:post_id/comments", hfunc(""), "POST")
+	mux.Add("/posts/:post_id/comments", hfunc(""), "GET")
+	mux.Add("/posts/:id", hfunc(""), "PUT", "PATCH")
+	mux.Add("/posts", hfunc(""), "POST")
+	mux.Add("/posts", hfunc(""), "GET")
 	mux.Add("/", hfunc(""), "GET")
-	mux.Add("/posts/:id", hfunc(""), "POST", "PUT")
-	mux.Add("/posts/:id", hfunc(""), "GET")
 
-	for _, v := range []struct {
-		m, u string
-		c    int
+	for k, v := range map[string][]struct {
+		u string
+		c int
 	}{
-		{"GET", "/", 200},
-
-		{"GET", "/posts", 404},
-		{"GET", "/posts/", 404},
-
-		{"GET", "/posts/123", 200},
-		{"GET", "/posts/123/", 200},
-
-		{"POST", "/posts/123", 200},
-		{"POST", "/posts/123/", 200},
-
-		{"PUT", "/posts/123", 200},
-		{"PUT", "/posts/123/", 200},
-
-		{"DELETE", "/posts/123", 405},
-		{"DELETE", "/posts/123/", 405},
+		"GET": {
+			{"/", 200},
+			{"/posts", 200},
+			{"/posts/123", 405},
+			{"/posts/123/comments", 200},
+			{"/posts/123/comments/456", 405},
+			{"/posts/123/author", 404},
+		},
+		"POST": {
+			{"/", 405},
+			{"/posts", 200},
+			{"/posts/123", 405},
+			{"/posts/123/comments", 200},
+			{"/posts/123/comments/456", 405},
+			{"/posts/123/author", 404},
+		},
+		"PUT": {
+			{"/", 405},
+			{"/posts", 405},
+			{"/posts/123", 200},
+			{"/posts/123/comments", 405},
+			{"/posts/123/comments/456", 200},
+			{"/posts/123/author", 404},
+		},
+		"PATCH": {
+			{"/", 405},
+			{"/posts", 405},
+			{"/posts/123", 200},
+			{"/posts/123/comments", 405},
+			{"/posts/123/comments/456", 200},
+			{"/posts/123/author", 404},
+		},
+		"DELETE": {
+			{"/", 405},
+			{"/posts", 405},
+			{"/posts/123", 405},
+			{"/posts/123/comments", 405},
+			{"/posts/123/comments/456", 405},
+			{"/posts/123/author", 404},
+		},
 	} {
-		w := httptest.NewRecorder()
-		req, err := http.NewRequest(v.m, fmt.Sprintf("http://www.com%s", v.u), nil)
-		if err != nil {
-			t.Fatal(err)
-		}
+		for _, r := range v {
+			w := httptest.NewRecorder()
 
-		mux.ServeHTTP(w, req)
-		assert.Equal(t, v.c, w.Code, v.m, " ", v.u)
+			req, err := http.NewRequest(k, fmt.Sprintf("http://www.com%s", r.u), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			mux.ServeHTTP(w, req)
+
+			assert.Equal(t, r.c, w.Code, k, " ", r.u)
+		}
 	}
 }
 
