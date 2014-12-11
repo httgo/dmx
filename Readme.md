@@ -25,6 +25,18 @@ Handling multple methods
       // ...
     }), "PUT", "PATCH")
 
+`.:format` parsing
+
+    mux.Get("/posts/:id.:format", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+      v := req.URL.Query()
+      id := v.Get(":id")
+      format := v.Get(":_format")
+
+      // ...
+    }))
+
+Using `.:format` will match paths with or without the extension.
+
 
 ## License
 
