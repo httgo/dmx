@@ -56,5 +56,5 @@ func BenchmarkPatternMatchingMultipleRoutes(b *testing.B) {
 	}
 }
 
-// BenchmarkPatternMatchingOneRoute         1000000              1174 ns/op
-// BenchmarkPatternMatchingMultipleRoutes   1000000              2390 ns/op
+// BenchmarkPatternMatchingOneRoute         2000000               825 ns/op
+// BenchmarkPatternMatchingMultipleRoutes   1000000              1360 ns/op

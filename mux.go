@@ -11,7 +11,6 @@ import (
 
 type resource struct {
 	http.Handler
-	urlp.Matcher
 
 	pat string
 }
@@ -20,7 +19,6 @@ type resource struct {
 func NewResource(pat string, h http.Handler) *resource {
 	return &resource{
 		h,
-		urlp.NewMatcher(pat),
 		pat,
 	}
 }
@@ -71,7 +69,7 @@ func trim(s string) string {
 
 func Match(r []*resource, pathStr string) (*resource, []string, bool) {
 	for _, v := range r {
-		p, ok := v.Match(pathStr)
+		p, ok := urlp.Match(v.pat, pathStr)
 		if ok {
 			return v, p, ok
 		}
