@@ -88,18 +88,19 @@ func TestDispatchesToMatchingResource(t *testing.T) {
 	}
 }
 
-func TestMethodNotAllowed(t *testing.T) {
+func TestMethodsAllowed(t *testing.T) {
 	mux := New()
-	mux.Add("/posts/:id", hfunc(""), "POST", "GET", "DELETE")
+	mux.Add("/posts", hfunc(""), "GET")
+	mux.Add("/posts/:id", hfunc(""), "PUT", "POST", "DELETE")
 
-	w := httptest.NewRecorder()
-	req, err := http.NewRequest("PUT", "http://www.com/posts/123", nil)
+	req, err := http.NewRequest("GET", "http://www.com/posts/123", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	mux.ServeHTTP(w, req)
-	assert.Equal(t, "DELETE, GET, POST", w.Header().Get("Allow"))
+	m, ok := methodsAllowed(mux, req)
+	assert.True(t, ok)
+	assert.Equal(t, []string{"DELETE", "POST", "PUT"}, m)
 }
 
 func TestNamedParamValues(t *testing.T) {
