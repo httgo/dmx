@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/nowk/dmx.svg?branch=master)](https://travis-ci.org/nowk/dmx)
 [![GoDoc](https://godoc.org/github.com/nowk/dmx?status.svg)](http://godoc.org/github.com/nowk/dmx)
 
-A simple pattern match mux
+A simple pattern match mux. *A speed experiment.*
 
 ## Example
 
