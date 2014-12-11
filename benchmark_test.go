@@ -27,22 +27,15 @@ func BenchmarkPatternMatchingOneRoute(b *testing.B) {
 
 func BenchmarkPatternMatchingMultipleRoutes(b *testing.B) {
 	mux := New()
-	mux.Get("/a/:name", h)
-	mux.Get("/b/:name", h)
-	mux.Get("/c/:name", h)
-	mux.Get("/d/:name", h)
-	mux.Get("/aa/:name", h)
-	mux.Get("/bb/:name", h)
-	mux.Get("/cc/:name", h)
-	mux.Get("/dd/:name", h)
-	mux.Get("/aaa/:name", h)
-	mux.Get("/bbb/:name", h)
-	mux.Get("/ccc/:name", h)
-	mux.Get("/ddd/:name", h)
-	mux.Get("/aaaa/:name", h)
-	mux.Get("/bbbb/:name", h)
-	mux.Get("/cccc/:name", h)
-	mux.Get("/dddd/:name", h)
+	mux.Get("/h/:name", h)
+	mux.Get("/he/:name", h)
+	mux.Get("/hel/:name", h)
+	mux.Get("/hell/:name", h)
+	mux.Get("/hellow/:name", h)
+	mux.Get("/hellowo/:name", h)
+	mux.Get("/hellowor/:name", h)
+	mux.Get("/helloworl/:name", h)
+	mux.Get("/helloworld/:name", h)
 	mux.Get("/hello/:name", h)
 
 	for n := 0; n < b.N; n++ {
@@ -56,5 +49,5 @@ func BenchmarkPatternMatchingMultipleRoutes(b *testing.B) {
 	}
 }
 
-// BenchmarkPatternMatchingOneRoute         2000000               825 ns/op
-// BenchmarkPatternMatchingMultipleRoutes   1000000              1360 ns/op
+// BenchmarkPatternMatchingOneRoute         2000000               934 ns/op
+// BenchmarkPatternMatchingMultipleRoutes   1000000              1353 ns/op
