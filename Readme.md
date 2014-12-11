@@ -19,6 +19,8 @@ A simple pattern match mux. *A speed experiment.*
       // ...
     }))
 
+Handling multple methods
+
     mux.Add("/posts/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
       // ...
     }), "PUT", "PATCH")
