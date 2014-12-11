@@ -139,6 +139,7 @@ func TestNamedParamValues(t *testing.T) {
 		q := req.URL.Query()
 		fmt.Fprintf(w, "post_id=%s&id=%s", q.Get(":post_id"), q.Get(":id"))
 	})
+
 	mux := New()
 	mux.Add("/posts/:post_id/tags/:id", h, "GET")
 
