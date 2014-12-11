@@ -2,7 +2,7 @@ package dmx
 
 import (
 	"fmt"
-	"github.com/nowk/urlp"
+	"gopkg.in/nowk/urlp.v1"
 	"net/http"
 	"net/url"
 	"sort"

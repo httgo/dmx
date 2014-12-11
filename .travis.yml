@@ -1,7 +1,7 @@
 language: go
 install:
   - go get github.com/nowk/assert
-  - go get github.com/nowk/urlp
+  - go get gopkg.in/nowk/urlp.v1
 go:
   - "1.0"
   - "1.1"
