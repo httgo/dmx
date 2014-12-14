@@ -5,6 +5,12 @@
 
 A simple pattern match mux. *A speed experiment.*
 
+
+## Install
+
+    go get gopkg.in/nowk/dmx.v1
+
+
 ## Example
 
     mux := dmx.New()
