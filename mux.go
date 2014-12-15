@@ -11,15 +11,13 @@ import (
 
 type resource struct {
 	http.Handler
-
 	pat string
 }
 
-// NewResource returns a resource with a preconditioned matcher from the pattern
 func NewResource(pat string, h http.Handler) *resource {
 	return &resource{
-		h,
-		pat,
+		Handler: h,
+		pat:     pat,
 	}
 }
 
@@ -46,6 +44,16 @@ func (r Mux) add(meth, pat string, h http.Handler) error {
 	return nil
 }
 
+// trim trims the trailing slash. Will always return atleast "/"
+func trim(s string) string {
+	s = strings.TrimRight(s, "/")
+	if s == "" {
+		return "/"
+	}
+
+	return s
+}
+
 // Add adds a new resource given the pattern, handler and one or more methods.
 // Panics on a pattern + method duplication
 func (m Mux) Add(pat string, h http.Handler, meth ...string) {
@@ -57,41 +65,27 @@ func (m Mux) Add(pat string, h http.Handler, meth ...string) {
 	}
 }
 
-// trim trims the trailing slash. Will always return atleast "/"
-func trim(s string) string {
-	s = strings.TrimRight(s, "/")
-	if s == "" {
-		return "/"
-	}
-
-	return s
-}
-
-func match(r []*resource, req *http.Request) (*resource, bool) {
-	for _, v := range r {
-		p, ok := urlp.Match(v.pat, req.URL.Path)
-		if ok {
-			params(p, req.URL)
-			return v, ok
+func methodsAllowed(m Mux, req *http.Request) ([]string, bool) {
+	var meths []string
+	for k, v := range m {
+		if k != req.Method {
+			_, ok := match(v, req)
+			if ok {
+				meths = append(meths, k)
+			}
 		}
 	}
-	return nil, false
-}
-
-func Match(m Mux, req *http.Request) (*resource, bool) {
-	r, ok := m[req.Method]
-	if !ok {
+	if len(meths) == 0 {
 		return nil, false
 	}
-
-	return match(r, req)
+	sort.Strings(meths)
+	return meths, true
 }
 
 // notFound handles 404 and 405 errors looking up the path in other method sets
 // and returns an Allow header if the path is allowed on other methods
 func (m Mux) notFound(w http.ResponseWriter, req *http.Request) {
 	c := 404
-
 	meths, ok := methodsAllowed(m, req)
 	if ok {
 		c = 405
@@ -121,23 +115,25 @@ func params(p []string, u *url.URL) {
 	}
 }
 
-func methodsAllowed(m Mux, req *http.Request) ([]string, bool) {
-	var meths []string
-	for k, v := range m {
-		if k != req.Method {
-			_, ok := match(v, req)
-			if ok {
-				meths = append(meths, k)
-			}
+func match(r []*resource, req *http.Request) (*resource, bool) {
+	for _, v := range r {
+		p, ok := urlp.Match(v.pat, req.URL.Path)
+		if ok {
+			params(p, req.URL)
+			return v, ok
 		}
 	}
+	return nil, false
+}
 
-	if len(meths) == 0 {
+// Match matches a request to a resource in a Mux
+func Match(m Mux, req *http.Request) (*resource, bool) {
+	r, ok := m[req.Method]
+	if !ok {
 		return nil, false
 	}
 
-	sort.Strings(meths)
-	return meths, true
+	return match(r, req)
 }
 
 func (m *Mux) Get(pat string, h http.Handler) {
