@@ -67,15 +67,24 @@ func trim(s string) string {
 	return s
 }
 
-func Match(r []*resource, pathStr string) (*resource, []string, bool) {
+func match(r []*resource, req *http.Request) (*resource, bool) {
 	for _, v := range r {
-		p, ok := urlp.Match(v.pat, pathStr)
+		p, ok := urlp.Match(v.pat, req.URL.Path)
 		if ok {
-			return v, p, ok
+			params(p, req.URL)
+			return v, ok
 		}
 	}
+	return nil, false
+}
 
-	return nil, nil, false
+func Match(m Mux, req *http.Request) (*resource, bool) {
+	r, ok := m[req.Method]
+	if !ok {
+		return nil, false
+	}
+
+	return match(r, req)
 }
 
 // notFound handles 404 and 405 errors looking up the path in other method sets
@@ -93,20 +102,13 @@ func (m Mux) notFound(w http.ResponseWriter, req *http.Request) {
 }
 
 // ServeHTTP implements http.Handler
-	r, ok := m[req.Method]
-	if !ok {
-		m.notFound(w, req)
-		return
-	}
-
-	res, p, ok := Match(r, req.URL.Path)
 func (m Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	res, ok := Match(m, req)
 	if !ok {
 		m.notFound(w, req)
 		return
 	}
 
-	params(p, req.URL)
 	res.ServeHTTP(w, req)
 }
 
@@ -123,7 +125,7 @@ func methodsAllowed(m Mux, req *http.Request) ([]string, bool) {
 	var meths []string
 	for k, v := range m {
 		if k != req.Method {
-			_, _, ok := Match(v, req.URL.Path)
+			_, ok := match(v, req)
 			if ok {
 				meths = append(meths, k)
 			}
