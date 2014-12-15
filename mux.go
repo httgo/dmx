@@ -23,16 +23,16 @@ func NewResource(pat string, h http.Handler) *resource {
 	}
 }
 
-// mux is a collection of method bound resources
-type mux map[string][]*resource
+// Mux is a collection of method bound resources
+type Mux map[string][]*resource
 
-func New() mux {
-	return make(mux)
+func New() Mux {
+	return make(Mux)
 }
 
 // add adds a new resource given a single method, patter and handler. Returning
 // and error on a pattern + method duplication
-func (r mux) add(meth, pat string, h http.Handler) error {
+func (r Mux) add(meth, pat string, h http.Handler) error {
 	m, ok := r[meth]
 	if ok {
 		for _, v := range m {
@@ -48,7 +48,7 @@ func (r mux) add(meth, pat string, h http.Handler) error {
 
 // Add adds a new resource given the pattern, handler and one or more methods.
 // Panics on a pattern + method duplication
-func (m mux) Add(pat string, h http.Handler, meth ...string) {
+func (m Mux) Add(pat string, h http.Handler, meth ...string) {
 	for _, v := range meth {
 		err := m.add(v, trim(pat), h)
 		if err != nil {
@@ -80,7 +80,7 @@ func Match(r []*resource, pathStr string) (*resource, []string, bool) {
 
 // notFound handles 404 and 405 errors looking up the path in other method sets
 // and returns an Allow header if the path is allowed on other methods
-func (m mux) notFound(w http.ResponseWriter, req *http.Request) {
+func (m Mux) notFound(w http.ResponseWriter, req *http.Request) {
 	c := 404
 
 	meths, ok := methodsAllowed(m, req)
@@ -93,7 +93,6 @@ func (m mux) notFound(w http.ResponseWriter, req *http.Request) {
 }
 
 // ServeHTTP implements http.Handler
-func (m mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	r, ok := m[req.Method]
 	if !ok {
 		m.notFound(w, req)
@@ -101,6 +100,7 @@ func (m mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	res, p, ok := Match(r, req.URL.Path)
+func (m Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if !ok {
 		m.notFound(w, req)
 		return
@@ -119,7 +119,7 @@ func params(p []string, u *url.URL) {
 	}
 }
 
-func methodsAllowed(m mux, req *http.Request) ([]string, bool) {
+func methodsAllowed(m Mux, req *http.Request) ([]string, bool) {
 	var meths []string
 	for k, v := range m {
 		if k != req.Method {
@@ -138,36 +138,36 @@ func methodsAllowed(m mux, req *http.Request) ([]string, bool) {
 	return meths, true
 }
 
-func (m *mux) Get(pat string, h http.Handler) {
+func (m *Mux) Get(pat string, h http.Handler) {
 	m.Add(pat, h, "GET")
 }
 
 // Geth registers both a head and get handler
-func (m *mux) Geth(pat string, h http.Handler) {
+func (m *Mux) Geth(pat string, h http.Handler) {
 	m.Add(pat, h, "HEAD", "GET")
 }
 
-func (m *mux) Head(pat string, h http.Handler) {
+func (m *Mux) Head(pat string, h http.Handler) {
 	m.Add(pat, h, "HEAD")
 }
 
-func (m *mux) Post(pat string, h http.Handler) {
+func (m *Mux) Post(pat string, h http.Handler) {
 	m.Add(pat, h, "POST")
 }
 
-func (m *mux) Put(pat string, h http.Handler) {
+func (m *Mux) Put(pat string, h http.Handler) {
 	m.Add(pat, h, "PUT")
 }
 
 // Putp registers both a put and patch handler
-func (m *mux) Putp(pat string, h http.Handler) {
+func (m *Mux) Putp(pat string, h http.Handler) {
 	m.Add(pat, h, "PUT", "PATCH")
 }
 
-func (m *mux) Patch(pat string, h http.Handler) {
+func (m *Mux) Patch(pat string, h http.Handler) {
 	m.Add(pat, h, "PATCH")
 }
 
-func (m *mux) Del(pat string, h http.Handler) {
+func (m *Mux) Del(pat string, h http.Handler) {
 	m.Add(pat, h, "DELETE")
 }
