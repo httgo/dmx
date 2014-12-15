@@ -21,8 +21,31 @@ func NewResource(pat string, h http.Handler) *resource {
 	}
 }
 
+type resources []*resource
+
+func params(p []string, u *url.URL) {
+	i := 0
+	l := len(p)
+	for i < l {
+		u.RawQuery = u.RawQuery + "&" + p[i] + "=" + p[i+1]
+		i = i + 2
+	}
+}
+
+// Match returns a matching resources based on a matching pattern to path
+func (r resources) Match(req *http.Request) (*resource, bool) {
+	for _, v := range r {
+		p, ok := urlp.Match(v.pat, req.URL.Path)
+		if ok {
+			params(p, req.URL)
+			return v, ok
+		}
+	}
+	return nil, false
+}
+
 // Mux is a collection of method bound resources
-type Mux map[string][]*resource
+type Mux map[string]resources
 
 func New() Mux {
 	return make(Mux)
@@ -69,7 +92,7 @@ func methodsAllowed(m Mux, req *http.Request) ([]string, bool) {
 	var meths []string
 	for k, v := range m {
 		if k != req.Method {
-			_, ok := match(v, req)
+			_, ok := v.Match(req)
 			if ok {
 				meths = append(meths, k)
 			}
@@ -106,34 +129,15 @@ func (m Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	res.ServeHTTP(w, req)
 }
 
-func params(p []string, u *url.URL) {
-	i := 0
-	l := len(p)
-	for i < l {
-		u.RawQuery = u.RawQuery + "&" + p[i] + "=" + p[i+1]
-		i = i + 2
-	}
-}
-
-func match(r []*resource, req *http.Request) (*resource, bool) {
-	for _, v := range r {
-		p, ok := urlp.Match(v.pat, req.URL.Path)
-		if ok {
-			params(p, req.URL)
-			return v, ok
-		}
-	}
-	return nil, false
-}
-
-// Match matches a request to a resource in a Mux
+// Match returns a matching resources based on a matching pattern to path and
+// request method
 func Match(m Mux, req *http.Request) (*resource, bool) {
 	r, ok := m[req.Method]
 	if !ok {
 		return nil, false
 	}
 
-	return match(r, req)
+	return r.Match(req)
 }
 
 func (m *Mux) Get(pat string, h http.Handler) {
