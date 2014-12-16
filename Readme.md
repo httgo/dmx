@@ -21,6 +21,8 @@ A simple pattern match mux. *A speed experiment.*
     var getPostHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
       v := req.URL.Query()
       id := v.Get(":id")
+
+      // ... 
     })
 
     func main() {
