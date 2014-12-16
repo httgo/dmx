@@ -59,6 +59,7 @@ func TestDispatchesToMatchingResource(t *testing.T) {
 	mux.Add("/posts", hfunc(""), "POST")
 	mux.Add("/posts", hfunc(""), "GET")
 	mux.Add("/", hfunc(""), "GET")
+	h := mux.Handler(NotFound(mux))
 
 	for k, v := range map[string][]struct {
 		u string
@@ -112,36 +113,22 @@ func TestDispatchesToMatchingResource(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			mux.ServeHTTP(w, req)
+			h.ServeHTTP(w, req)
 
 			assert.Equal(t, r.c, w.Code, k, " ", r.u)
 		}
 	}
 }
 
-func TestMethodsAllowed(t *testing.T) {
-	mux := New()
-	mux.Add("/posts", hfunc(""), "GET")
-	mux.Add("/posts/:id", hfunc(""), "PUT", "POST", "DELETE")
-
-	req, err := http.NewRequest("GET", "http://www.com/posts/123", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	m, ok := methodsAllowed(mux, req)
-	assert.True(t, ok)
-	assert.Equal(t, []string{"DELETE", "POST", "PUT"}, m)
-}
-
 func TestNamedParamValues(t *testing.T) {
-	var h = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	var ph = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		q := req.URL.Query()
 		fmt.Fprintf(w, "post_id=%s&id=%s", q.Get(":post_id"), q.Get(":id"))
 	})
 
 	mux := New()
-	mux.Add("/posts/:post_id/tags/:id", h, "GET")
+	mux.Add("/posts/:post_id/tags/:id", ph, "GET")
+	h := mux.Handler(NotFound(mux))
 
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "http://www.com/posts/123/tags/456", nil)
@@ -149,6 +136,6 @@ func TestNamedParamValues(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	mux.ServeHTTP(w, req)
+	h.ServeHTTP(w, req)
 	assert.Equal(t, "post_id=123&id=456", w.Body.String())
 }

@@ -5,7 +5,6 @@ import (
 	"gopkg.in/nowk/urlp.v1"
 	"net/http"
 	"net/url"
-	"sort"
 	"strings"
 )
 
@@ -88,45 +87,18 @@ func (m Mux) Add(pat string, h http.Handler, meth ...string) {
 	}
 }
 
-func methodsAllowed(m Mux, req *http.Request) ([]string, bool) {
-	var meths []string
-	for k, v := range m {
-		if k != req.Method {
-			_, ok := v.Match(req)
-			if ok {
-				meths = append(meths, k)
-			}
+// Handler returns the final handler delegating any unmatched routes to the
+// provided handler.
+func (m Mux) Handler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		res, ok := Match(m, req)
+		if !ok {
+			h.ServeHTTP(w, req)
+			return
 		}
-	}
-	if len(meths) == 0 {
-		return nil, false
-	}
-	sort.Strings(meths)
-	return meths, true
-}
 
-// notFound handles 404 and 405 errors looking up the path in other method sets
-// and returns an Allow header if the path is allowed on other methods
-func (m Mux) notFound(w http.ResponseWriter, req *http.Request) {
-	c := 404
-	meths, ok := methodsAllowed(m, req)
-	if ok {
-		c = 405
-		w.Header().Add("Allow", strings.Join(meths, ", "))
-	}
-
-	http.Error(w, http.StatusText(c), c)
-}
-
-// ServeHTTP implements http.Handler
-func (m Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	res, ok := Match(m, req)
-	if !ok {
-		m.notFound(w, req)
-		return
-	}
-
-	res.ServeHTTP(w, req)
+		res.ServeHTTP(w, req)
+	})
 }
 
 // Match returns a matching resources based on a matching pattern to path and
