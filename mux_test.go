@@ -2,7 +2,7 @@ package dmx
 
 import (
 	"fmt"
-	"github.com/nowk/assert"
+	"gopkg.in/nowk/assert.v2"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -26,14 +26,14 @@ func TestMethodPatternDuplicationPanics(t *testing.T) {
 
 		{
 			mux := New()
-			assert.Panic(t, fmt.Errorf("error: mux: POST %s is already defined", s),
+			assert.Panic(t, fmt.Sprintf("error: mux: POST %s is already defined", s),
 				func() {
 					mux.Add(v, hfunc(""), "POST", "POST")
 				})
 		}
 		{
 			mux := New()
-			assert.Panic(t, fmt.Errorf("error: mux: POST %s is already defined", s),
+			assert.Panic(t, fmt.Sprintf("error: mux: POST %s is already defined", s),
 				func() {
 					mux.Add(v+"/", hfunc(""), "POST")
 					mux.Add(v, hfunc(""), "POST")
@@ -41,7 +41,7 @@ func TestMethodPatternDuplicationPanics(t *testing.T) {
 		}
 		{
 			mux := New()
-			assert.Panic(t, fmt.Errorf("error: mux: POST %s is already defined", s),
+			assert.Panic(t, fmt.Sprintf("error: mux: POST %s is already defined", s),
 				func() {
 					mux.Add(v, hfunc(""), "POST")
 					mux.Add(v+"/", hfunc(""), "POST")

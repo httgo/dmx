@@ -1,7 +1,7 @@
 package dmx
 
 import (
-	"github.com/nowk/assert"
+	"gopkg.in/nowk/assert.v2"
 	"net/http"
 	"testing"
 )
