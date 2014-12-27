@@ -1,14 +1,14 @@
 # dmx
 
-[![Build Status](https://travis-ci.org/nowk/dmx.svg?branch=master)](https://travis-ci.org/nowk/dmx)
-[![GoDoc](https://godoc.org/github.com/nowk/dmx?status.svg)](http://godoc.org/github.com/nowk/dmx)
+[![Build Status](https://travis-ci.org/httgo/dmx.svg?branch=master)](https://travis-ci.org/httgo/dmx)
+[![GoDoc](https://godoc.org/gopkg.in/httgo/dmx.v2?status.svg)](http://godoc.org/gopkg.in/httgo/dmx.v2)
 
 A simple pattern match mux. *A speed experiment.*
 
 
 ## Install
 
-    go get gopkg.in/nowk/dmx.v2
+    go get gopkg.in/httgo/dmx.v2
 
 
 ## Example
@@ -16,7 +16,7 @@ A simple pattern match mux. *A speed experiment.*
     package main
 
     import "net/http"
-    import "gopkg.in/nowk/dmx.v2"
+    import "gopkg.in/httgo/dmx.v2"
 
     var getPostHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
       v := req.URL.Query()
