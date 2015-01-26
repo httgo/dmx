@@ -139,3 +139,35 @@ func TestNamedParamValues(t *testing.T) {
 	h.ServeHTTP(w, req)
 	assert.Equal(t, "post_id=123&id=456", w.Body.String())
 }
+
+func TestHandlerFuncShortcuts(t *testing.T) {
+	var fn = func(w http.ResponseWriter, req *http.Request) {
+		w.Write([]byte(fmt.Sprintf("Hello %s!", req.Method)))
+	}
+
+	mux := New()
+	mux.GetFunc("/say-you", fn)
+	mux.HeadFunc("/say-you", fn)
+	mux.PostFunc("/say-you", fn)
+	mux.PutFunc("/say-you", fn)
+	mux.PatchFunc("/say-you", fn)
+	mux.DelFunc("/say-you", fn)
+	h := mux.Handler(NotFound(mux))
+
+	for _, v := range []string{
+		"GET",
+		"HEAD",
+		"POST",
+		"PUT",
+		"PATCH",
+		"DELETE",
+	} {
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(v, "/say-you", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		h.ServeHTTP(w, req)
+		assert.Equal(t, fmt.Sprintf("Hello %s!", v), w.Body.String())
+	}
+}

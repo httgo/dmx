@@ -42,18 +42,22 @@ A simple pattern match mux. *A speed experiment.*
 GET
 
     mux.Get(string, http.Handler)
+    mux.GetFunc(string, http.HandlerFunc)
     
 POST
     
     mux.Post(string, http.Handler)
+    mux.PostFunc(string, http.HandlerFunc)
     
 PUT
 
     mux.Put(string, http.Handler)
+    mux.PutFunc(string, http.HandlerFunc)
     
 DELETE
 
     mux.Del(string, http.Handler)
+    mux.DelFunc(string, http.HandlerFunc)
 
 ---
 

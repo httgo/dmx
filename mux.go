@@ -116,6 +116,10 @@ func (m *Mux) Get(pat string, h http.Handler) {
 	m.Add(pat, h, "GET")
 }
 
+func (m *Mux) GetFunc(pat string, fn http.HandlerFunc) {
+	m.Get(pat, http.HandlerFunc(fn))
+}
+
 // Geth registers both a head and get handler
 func (m *Mux) Geth(pat string, h http.Handler) {
 	m.Add(pat, h, "HEAD", "GET")
@@ -125,12 +129,24 @@ func (m *Mux) Head(pat string, h http.Handler) {
 	m.Add(pat, h, "HEAD")
 }
 
+func (m *Mux) HeadFunc(pat string, fn http.HandlerFunc) {
+	m.Head(pat, http.HandlerFunc(fn))
+}
+
 func (m *Mux) Post(pat string, h http.Handler) {
 	m.Add(pat, h, "POST")
 }
 
+func (m *Mux) PostFunc(pat string, fn http.HandlerFunc) {
+	m.Post(pat, http.HandlerFunc(fn))
+}
+
 func (m *Mux) Put(pat string, h http.Handler) {
 	m.Add(pat, h, "PUT")
+}
+
+func (m *Mux) PutFunc(pat string, fn http.HandlerFunc) {
+	m.Put(pat, http.HandlerFunc(fn))
 }
 
 // Putp registers both a put and patch handler
@@ -142,6 +158,14 @@ func (m *Mux) Patch(pat string, h http.Handler) {
 	m.Add(pat, h, "PATCH")
 }
 
+func (m *Mux) PatchFunc(pat string, fn http.HandlerFunc) {
+	m.Patch(pat, http.HandlerFunc(fn))
+}
+
 func (m *Mux) Del(pat string, h http.Handler) {
 	m.Add(pat, h, "DELETE")
+}
+
+func (m *Mux) DelFunc(pat string, fn http.HandlerFunc) {
+	m.Del(pat, http.HandlerFunc(fn))
 }
