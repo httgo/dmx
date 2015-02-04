@@ -18,7 +18,7 @@ func BenchmarkPatternMatchingOneRoute(b *testing.B) {
 		b.StopTimer()
 		r, err := http.NewRequest("GET", "/hello/blake", nil)
 		if err != nil {
-			panic(err)
+			b.Fatal(err)
 		}
 		b.StartTimer()
 		mux.ServeHTTP(nil, r)
@@ -42,7 +42,7 @@ func BenchmarkPatternMatchingMultipleRoutes(b *testing.B) {
 		b.StopTimer()
 		r, err := http.NewRequest("GET", "/hello/blake", nil)
 		if err != nil {
-			panic(err)
+			b.Fatal(err)
 		}
 		b.StartTimer()
 		mux.ServeHTTP(nil, r)
@@ -57,7 +57,7 @@ func BenchmarkPatternMatchingOneRouteWithFormat(b *testing.B) {
 		b.StopTimer()
 		r, err := http.NewRequest("GET", "/hello/blake.html", nil)
 		if err != nil {
-			panic(err)
+			b.Fatal(err)
 		}
 		b.StartTimer()
 		mux.ServeHTTP(nil, r)
@@ -81,7 +81,7 @@ func BenchmarkPatternMatchingMultipleRoutesWithFormat(b *testing.B) {
 		b.StopTimer()
 		r, err := http.NewRequest("GET", "/hello/blake.html", nil)
 		if err != nil {
-			panic(err)
+			b.Fatal(err)
 		}
 		b.StartTimer()
 		mux.ServeHTTP(nil, r)
