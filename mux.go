@@ -99,7 +99,7 @@ func (m Mux) NotFound(w http.ResponseWriter, req *http.Request) {
 }
 
 func (m Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	res, ok := Match(m, req)
+	res, ok := Match(&m, req)
 	if !ok {
 		m.NotFound(w, req)
 		return
@@ -109,7 +109,7 @@ func (m Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 // Match returns a matching resources based on a matching pattern to path and
 // request method
-func Match(m Mux, req *http.Request) (*resource, bool) {
+func Match(m *Mux, req *http.Request) (*resource, bool) {
 	r, ok := m.Resources[req.Method]
 	if !ok {
 		return nil, false
