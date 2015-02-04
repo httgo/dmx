@@ -59,7 +59,6 @@ func TestDispatchesToMatchingResource(t *testing.T) {
 	mux.Add("/posts", hfunc(""), "POST")
 	mux.Add("/posts", hfunc(""), "GET")
 	mux.Add("/", hfunc(""), "GET")
-	h := mux.Handler(NotFound(mux))
 
 	for k, v := range map[string][]struct {
 		u string
@@ -113,7 +112,7 @@ func TestDispatchesToMatchingResource(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			h.ServeHTTP(w, req)
+			mux.ServeHTTP(w, req)
 
 			assert.Equal(t, r.c, w.Code, k, " ", r.u)
 		}
@@ -128,7 +127,6 @@ func TestNamedParamValues(t *testing.T) {
 
 	mux := New()
 	mux.Add("/posts/:post_id/tags/:id", ph, "GET")
-	h := mux.Handler(NotFound(mux))
 
 	w := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "http://www.com/posts/123/tags/456", nil)
@@ -136,7 +134,7 @@ func TestNamedParamValues(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	h.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 	assert.Equal(t, "post_id=123&id=456", w.Body.String())
 }
 
@@ -152,7 +150,6 @@ func TestHandlerFuncShortcuts(t *testing.T) {
 	mux.PutFunc("/say-you", fn)
 	mux.PatchFunc("/say-you", fn)
 	mux.DelFunc("/say-you", fn)
-	h := mux.Handler(NotFound(mux))
 
 	for _, v := range []string{
 		"GET",
@@ -167,7 +164,7 @@ func TestHandlerFuncShortcuts(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		h.ServeHTTP(w, req)
+		mux.ServeHTTP(w, req)
 		assert.Equal(t, fmt.Sprintf("Hello %s!", v), w.Body.String())
 	}
 }

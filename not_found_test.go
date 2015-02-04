@@ -16,7 +16,7 @@ func TestAllowedMethods(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	m, ok := NotFound(mux).AllowedMethods(req)
+	m, ok := NotFound{mux}.AllowedMethods(req)
 	assert.True(t, ok)
 	assert.Equal(t, []string{"DELETE", "POST", "PUT"}, m)
 }

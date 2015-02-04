@@ -44,16 +44,23 @@ func (r resources) Match(req *http.Request) (*resource, bool) {
 }
 
 // Mux is a collection of method bound resources
-type Mux map[string]resources
+type Mux struct {
+	Resources       map[string]resources
+	NotFoundHandler http.Handler
+}
 
-func New() Mux {
-	return make(Mux)
+func New() *Mux {
+	m := &Mux{
+		Resources: make(map[string]resources),
+	}
+	m.NotFoundHandler = NotFound{m}
+	return m
 }
 
 // add adds a new resource given a single method, patter and handler. Returning
 // and error on a pattern + method duplication
-func (r Mux) add(meth, pat string, h http.Handler) error {
-	m, ok := r[meth]
+func (r *Mux) add(meth, pat string, h http.Handler) error {
+	m, ok := r.Resources[meth]
 	if ok {
 		for _, v := range m {
 			if v.pat == pat {
@@ -62,7 +69,7 @@ func (r Mux) add(meth, pat string, h http.Handler) error {
 		}
 	}
 
-	r[meth] = append(r[meth], NewResource(pat, h))
+	r.Resources[meth] = append(r.Resources[meth], NewResource(pat, h))
 	return nil
 }
 
@@ -87,24 +94,23 @@ func (m Mux) Add(pat string, h http.Handler, meth ...string) {
 	}
 }
 
-// Handler returns the final handler delegating any unmatched routes to the
-// provided handler.
-func (m Mux) Handler(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		res, ok := Match(m, req)
-		if !ok {
-			h.ServeHTTP(w, req)
-			return
-		}
+func (m Mux) NotFound(w http.ResponseWriter, req *http.Request) {
+	m.NotFoundHandler.ServeHTTP(w, req)
+}
 
-		res.ServeHTTP(w, req)
-	})
+func (m Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	res, ok := Match(m, req)
+	if !ok {
+		m.NotFound(w, req)
+		return
+	}
+	res.ServeHTTP(w, req)
 }
 
 // Match returns a matching resources based on a matching pattern to path and
 // request method
 func Match(m Mux, req *http.Request) (*resource, bool) {
-	r, ok := m[req.Method]
+	r, ok := m.Resources[req.Method]
 	if !ok {
 		return nil, false
 	}

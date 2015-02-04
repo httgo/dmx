@@ -13,7 +13,6 @@ var h = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 func BenchmarkPatternMatchingOneRoute(b *testing.B) {
 	mux := New()
 	mux.Get("/hello/:name", h)
-	h := mux.Handler(NotFound(mux))
 
 	for n := 0; n < b.N; n++ {
 		b.StopTimer()
@@ -22,7 +21,7 @@ func BenchmarkPatternMatchingOneRoute(b *testing.B) {
 			panic(err)
 		}
 		b.StartTimer()
-		h.ServeHTTP(nil, r)
+		mux.ServeHTTP(nil, r)
 	}
 }
 
@@ -38,7 +37,6 @@ func BenchmarkPatternMatchingMultipleRoutes(b *testing.B) {
 	mux.Get("/helloworl/:name", h)
 	mux.Get("/helloworld/:name", h)
 	mux.Get("/hello/:name", h)
-	h := mux.Handler(NotFound(mux))
 
 	for n := 0; n < b.N; n++ {
 		b.StopTimer()
@@ -47,14 +45,13 @@ func BenchmarkPatternMatchingMultipleRoutes(b *testing.B) {
 			panic(err)
 		}
 		b.StartTimer()
-		h.ServeHTTP(nil, r)
+		mux.ServeHTTP(nil, r)
 	}
 }
 
 func BenchmarkPatternMatchingOneRouteWithFormat(b *testing.B) {
 	mux := New()
 	mux.Get("/hello/:name.:format", h)
-	h := mux.Handler(NotFound(mux))
 
 	for n := 0; n < b.N; n++ {
 		b.StopTimer()
@@ -63,7 +60,7 @@ func BenchmarkPatternMatchingOneRouteWithFormat(b *testing.B) {
 			panic(err)
 		}
 		b.StartTimer()
-		h.ServeHTTP(nil, r)
+		mux.ServeHTTP(nil, r)
 	}
 }
 
@@ -79,7 +76,6 @@ func BenchmarkPatternMatchingMultipleRoutesWithFormat(b *testing.B) {
 	mux.Get("/helloworl/:name.:format", h)
 	mux.Get("/helloworld/:name", h)
 	mux.Get("/hello/:name.:format", h)
-	h := mux.Handler(NotFound(mux))
 
 	for n := 0; n < b.N; n++ {
 		b.StopTimer()
@@ -88,7 +84,7 @@ func BenchmarkPatternMatchingMultipleRoutesWithFormat(b *testing.B) {
 			panic(err)
 		}
 		b.StartTimer()
-		h.ServeHTTP(nil, r)
+		mux.ServeHTTP(nil, r)
 	}
 }
 
