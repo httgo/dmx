@@ -112,7 +112,7 @@ func TestDispatchesToMatchingResource(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			mux.ServeHTTP(w, req)
+			mux.Then(NotFound(mux)).ServeHTTP(w, req)
 
 			assert.Equal(t, r.c, w.Code, k, " ", r.u)
 		}
@@ -134,7 +134,7 @@ func TestNamedParamValues(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	mux.ServeHTTP(w, req)
+	mux.Then(NotFound(mux)).ServeHTTP(w, req)
 	assert.Equal(t, "post_id=123&id=456", w.Body.String())
 }
 
@@ -164,7 +164,7 @@ func TestHandlerFuncShortcuts(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		mux.ServeHTTP(w, req)
+		mux.Then(NotFound(mux)).ServeHTTP(w, req)
 		assert.Equal(t, fmt.Sprintf("Hello %s!", v), w.Body.String())
 	}
 }

@@ -21,14 +21,16 @@ func (m Mux) Add(pat string, h http.Handler, meths ...string) {
 	}
 }
 
-func (m Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	res, ok := Match(m, req)
-	if ok {
-		res.ServeHTTP(w, req)
-		return
-	}
+func (m Mux) Then(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		res, ok := Match(m, req)
+		if ok {
+			res.ServeHTTP(w, req)
+			return
+		}
 
-	NotFound(m).ServeHTTP(w, req)
+		h.ServeHTTP(w, req)
+	})
 }
 
 // Match returns a matching resources based on a matching pattern to path and

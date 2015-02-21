@@ -29,9 +29,7 @@ A simple pattern match mux. *A speed experiment.*
       mux := dmx.New()
       mux.Get("/posts/:id", getPostHandler)
 
-      h := mux.Handler(dmx.NotFound(mux))
-
-      err := http.ListenAndServe(":3000", h)
+      err := http.ListenAndServe(":3000", mux.Then(dmx.NotFound(mux)))
       if err != nil {
         log.Fatalf("fatal: listen: %s", err)
       }
@@ -89,15 +87,16 @@ You define how you want non-matches to be handled.
 
 You can use the built in `dmx.NotFound`. This will return either `404` or `405` (with an `Allow` header).
 
-    h := mux.Handler(dmx.NotFound(mux))
-
+    h := mux.Then(dmx.NotFound(mux))
 
 Or you you can pass it off to another handler. Ex: a file server
 
     stc := http.Dir("./public")
     pub := http.FileServer(stc)
     ...
-    h := mux.Handler(pub)
+    h := mux.Then(pub)
+
+*Note: You must define a `Then` handler, the mux itself does not implement `http.Handler`*
 
 
 ## License
