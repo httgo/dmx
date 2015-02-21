@@ -168,3 +168,88 @@ func TestHandlerFuncShortcuts(t *testing.T) {
 		assert.Equal(t, fmt.Sprintf("Hello %s!", v), w.Body.String())
 	}
 }
+
+func TestMountMuxWithinMux(t *testing.T) {
+	a := New()
+	a.Get("/posts", hfunc("[GET] /posts"))
+
+	b := New()
+	b.Get("/posts/comments", hfunc("[GET] /posts/comments"))
+
+	mux := New()
+	mux.Mount(a, b)
+	h := mux.Then(NotFound(mux))
+
+	for _, v := range []struct {
+		Method, Path, Body string
+	}{
+		{"GET", "/posts", "[GET] /posts"},
+		{"GET", "/posts/comments", "[GET] /posts/comments"},
+	} {
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(v.Method, v.Path, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		h.ServeHTTP(w, req)
+		assert.Equal(t, v.Body, w.Body.String())
+	}
+}
+
+func TestMountMuxWithNamespace(t *testing.T) {
+	a := New()
+	a.Get("/", hfunc("[GET] /posts"))
+
+	b := New()
+	b.Get("/comments", hfunc("[GET] /posts/comments"))
+
+	mux := New()
+	mux.MountAt("/posts", a, b)
+	h := mux.Then(NotFound(mux))
+
+	for _, v := range []struct {
+		Method, Path, Body string
+	}{
+		{"GET", "/posts", "[GET] /posts"},
+		{"GET", "/posts/comments", "[GET] /posts/comments"},
+	} {
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(v.Method, v.Path, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		h.ServeHTTP(w, req)
+		assert.Equal(t, v.Body, w.Body.String())
+	}
+}
+
+func TestMountMethodPatternDuplicationPanic(t *testing.T) {
+	a := New()
+	a.Get("/posts", hfunc(""))
+
+	mux := New()
+	mux.Get("/posts", hfunc(""))
+
+	assert.Panic(t, "error: mux: GET /posts is already defined", func() {
+		mux.Mount(a)
+	})
+}
+
+func TestMountPatternParams(t *testing.T) {
+	a := New()
+	a.GetFunc("/comments", func(w http.ResponseWriter, req *http.Request) {
+		id := req.URL.Query().Get(":id")
+		w.Write([]byte(fmt.Sprintf("id:%s", id)))
+	})
+
+	mux := New()
+	mux.MountAt("/posts/:id", a)
+
+	w := httptest.NewRecorder()
+	req, err := http.NewRequest("GET", "/posts/123/comments", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mux.Then(NotFound(mux)).ServeHTTP(w, req)
+	assert.Equal(t, "id:123", w.Body.String())
+}

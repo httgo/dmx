@@ -2,6 +2,7 @@ package dmx
 
 import (
 	"net/http"
+	"path"
 )
 
 // Mux is a collection of method bound resources
@@ -18,6 +19,22 @@ func (m Mux) Add(pat string, h http.Handler, meths ...string) {
 	err := res.Apply(m)
 	if err != nil {
 		panic(err)
+	}
+}
+
+func (m Mux) Mount(mux ...Mux) {
+	m.MountAt("", mux...)
+}
+
+// MountAt applies another Mux(es)'s resources on to this one, prefixing the
+// pattern to the incoming resources
+func (m Mux) MountAt(pat string, mux ...Mux) {
+	for _, x := range mux {
+		for _, r := range x {
+			for _, v := range r {
+				m.Add(path.Join(pat, v.Pattern), v.Handler, v.Methods...)
+			}
+		}
 	}
 }
 
