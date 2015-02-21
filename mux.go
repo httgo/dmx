@@ -21,10 +21,12 @@ func (m Mux) Add(pat string, h http.Handler, meths ...string) {
 	}
 }
 
+// Then returns the final serve handler through an Alice style constructor
+// allowing you to passing in your own NotFound handler. Or push use `Then` to
+// stack the mux into a middleware chain
 func (m Mux) Then(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		res, ok := Match(m, req)
-		if ok {
+		if res, ok := Match(m, req); ok {
 			res.ServeHTTP(w, req)
 			return
 		}
@@ -36,12 +38,11 @@ func (m Mux) Then(h http.Handler) http.Handler {
 // Match returns a matching resources based on a matching pattern to path and
 // request method
 func Match(m Mux, req *http.Request) (*resource, bool) {
-	r, ok := m[req.Method]
-	if !ok {
-		return nil, false
+	if r, ok := m[req.Method]; ok {
+		return r.Match(req)
 	}
 
-	return r.Match(req)
+	return nil, false
 }
 
 func (m *Mux) Get(pat string, h http.Handler) {
