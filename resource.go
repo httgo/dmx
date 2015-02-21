@@ -24,9 +24,9 @@ func NewResource(meths []string, pat string, h http.Handler) *resource {
 	}
 }
 
-func (r *resource) Apply(mux *Mux) error {
+func (r *resource) Apply(mux Mux) error {
 	for _, m := range r.Methods {
-		p, ok := mux.Resources[m]
+		p, ok := mux[m]
 		if ok {
 			for _, v := range p {
 				if v.Pattern == r.Pattern {
@@ -35,7 +35,7 @@ func (r *resource) Apply(mux *Mux) error {
 			}
 		}
 
-		mux.Resources[m] = append(mux.Resources[m], r)
+		mux[m] = append(mux[m], r)
 	}
 	return nil
 }

@@ -5,46 +5,36 @@ import (
 )
 
 // Mux is a collection of method bound resources
-type Mux struct {
-	Resources       map[string]resources
-	NotFoundHandler http.Handler
-}
+type Mux map[string]resources
 
-func New() *Mux {
-	var m Mux
-	m = Mux{
-		Resources:       make(map[string]resources),
-		NotFoundHandler: NotFound{&m},
-	}
-	return &m
+func New() Mux {
+	return make(Mux)
 }
 
 // Add adds a new resource given the pattern, handler and one or more methods.
 // Panics on a pattern + method duplication
-func (m *Mux) Add(pat string, h http.Handler, meths ...string) {
-	r := NewResource(meths, pat, h)
-	if err := r.Apply(m); err != nil {
+func (m Mux) Add(pat string, h http.Handler, meths ...string) {
+	res := NewResource(meths, pat, h)
+	err := res.Apply(m)
+	if err != nil {
 		panic(err)
 	}
 }
 
-func (m Mux) NotFound(w http.ResponseWriter, req *http.Request) {
-	m.NotFoundHandler.ServeHTTP(w, req)
-}
-
 func (m Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	res, ok := Match(&m, req)
-	if !ok {
-		m.NotFound(w, req)
+	res, ok := Match(m, req)
+	if ok {
+		res.ServeHTTP(w, req)
 		return
 	}
-	res.ServeHTTP(w, req)
+
+	NotFound(m).ServeHTTP(w, req)
 }
 
 // Match returns a matching resources based on a matching pattern to path and
 // request method
-func Match(m *Mux, req *http.Request) (*resource, bool) {
-	r, ok := m.Resources[req.Method]
+func Match(m Mux, req *http.Request) (*resource, bool) {
+	r, ok := m[req.Method]
 	if !ok {
 		return nil, false
 	}
