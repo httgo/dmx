@@ -2,7 +2,6 @@ package dmx
 
 import (
 	"net/http"
-	"sort"
 	"strings"
 )
 
@@ -36,8 +35,6 @@ func (n NotFound) AllowedMethods(req *http.Request) ([]string, bool) {
 	if len(meths) == 0 {
 		return nil, false
 	}
-
-	sort.Strings(meths)
 
 	return meths, true
 }

@@ -3,6 +3,7 @@ package dmx
 import (
 	"gopkg.in/nowk/assert.v2"
 	"net/http"
+	"sort"
 	"testing"
 )
 
@@ -16,7 +17,8 @@ func TestAllowedMethods(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	m, ok := NotFound{mux}.AllowedMethods(req)
+	m, ok := NotFound(mux).AllowedMethods(req)
+	sort.Strings(m)
 	assert.True(t, ok)
 	assert.Equal(t, []string{"DELETE", "POST", "PUT"}, m)
 }
