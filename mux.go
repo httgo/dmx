@@ -1,9 +1,7 @@
 package dmx
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 )
 
 // Mux is a collection of method bound resources
@@ -20,40 +18,12 @@ func New() *Mux {
 	return m
 }
 
-// add adds a new resource given a single method, patter and handler. Returning
-// and error on a pattern + method duplication
-func (r *Mux) add(meth, pat string, h http.Handler) error {
-	m, ok := r.Resources[meth]
-	if ok {
-		for _, v := range m {
-			if v.pat == pat {
-				return fmt.Errorf("error: mux: %s %s is already defined", meth, v.pat)
-			}
-		}
-	}
-
-	r.Resources[meth] = append(r.Resources[meth], NewResource(pat, h))
-	return nil
-}
-
-// trim trims the trailing slash. Will always return atleast "/"
-func trim(s string) string {
-	s = strings.TrimRight(s, "/")
-	if s == "" {
-		return "/"
-	}
-
-	return s
-}
-
 // Add adds a new resource given the pattern, handler and one or more methods.
 // Panics on a pattern + method duplication
-func (m Mux) Add(pat string, h http.Handler, meth ...string) {
-	for _, v := range meth {
-		err := m.add(v, trim(pat), h)
-		if err != nil {
-			panic(err)
-		}
+func (m *Mux) Add(pat string, h http.Handler, meths ...string) {
+	r := NewResource(meths, pat, h)
+	if err := r.Apply(m); err != nil {
+		panic(err)
 	}
 }
 
