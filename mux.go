@@ -11,11 +11,12 @@ type Mux struct {
 }
 
 func New() *Mux {
-	m := &Mux{
-		Resources: make(map[string]resources),
+	var m Mux
+	m = Mux{
+		Resources:       make(map[string]resources),
+		NotFoundHandler: NotFound{&m},
 	}
-	m.NotFoundHandler = NotFound{m}
-	return m
+	return &m
 }
 
 // Add adds a new resource given the pattern, handler and one or more methods.
