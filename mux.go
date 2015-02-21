@@ -2,46 +2,9 @@ package dmx
 
 import (
 	"fmt"
-	"gopkg.in/nowk/urlp.v1"
 	"net/http"
-	"net/url"
 	"strings"
 )
-
-type resource struct {
-	http.Handler
-	pat string
-}
-
-func NewResource(pat string, h http.Handler) *resource {
-	return &resource{
-		Handler: h,
-		pat:     pat,
-	}
-}
-
-type resources []*resource
-
-func params(p []string, u *url.URL) {
-	i := 0
-	l := len(p)
-	for i < l {
-		u.RawQuery = u.RawQuery + "&" + p[i] + "=" + p[i+1]
-		i = i + 2
-	}
-}
-
-// Match returns a matching resources based on a matching pattern to path
-func (r resources) Match(req *http.Request) (*resource, bool) {
-	for _, v := range r {
-		p, ok := urlp.Match(v.pat, req.URL.Path)
-		if ok {
-			params(p, req.URL)
-			return v, ok
-		}
-	}
-	return nil, false
-}
 
 // Mux is a collection of method bound resources
 type Mux struct {
