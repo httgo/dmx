@@ -1,4 +1,4 @@
-package dmx
+package dmx // gopkg.in/httgo/dmx.v3
 
 import (
 	"net/http"
