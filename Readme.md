@@ -1,22 +1,22 @@
 # dmx
 
 [![Build Status](https://travis-ci.org/httgo/dmx.svg?branch=master)](https://travis-ci.org/httgo/dmx)
-[![GoDoc](https://godoc.org/gopkg.in/httgo/dmx.v2?status.svg)](http://godoc.org/gopkg.in/httgo/dmx.v2)
+[![GoDoc](https://godoc.org/gopkg.in/httgo/dmx.v3?status.svg)](http://godoc.org/gopkg.in/httgo/dmx.v3)
 
 A simple pattern match mux. *A speed experiment.*
 
 
 ## Install
 
-    go get gopkg.in/httgo/dmx.v2
+    go get gopkg.in/httgo/dmx.v3
 
 
-## Example
+## Usage
 
     package main
 
     import "net/http"
-    import "gopkg.in/httgo/dmx.v2"
+    import "gopkg.in/httgo/dmx.v3"
 
     var getPostHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
       v := req.URL.Query()
@@ -96,7 +96,37 @@ Or you you can pass it off to another handler. Ex: a file server
     ...
     h := mux.Then(pub)
 
-*Note: You must define a `Then` handler, the mux itself does not implement `http.Handler`*
+*Note: You must call `Then`, the mux itself does not implement `http.Handler`*
+
+---
+
+#### Mounting other Muxes
+
+You can mount other Muxes onto a parent mux, providing a way to organize large mux structures.
+
+    posts := dmx.New()
+    posts.Get("/posts", ...)
+    posts.Get("/posts/:id", ...)
+
+    mux := dmx.New()
+    mux.Get("/", ...)
+    mux.Mount(posts)
+
+This would be equivalent to
+
+    mux := dmx.New()
+    mux.Get("/", ...)
+    mux.Get("/posts", ...)
+    mux.Get("/posts/:id", ...)
+
+You can also mount on a namespace
+
+    posts := dmx.New()
+    posts.Get("/", ...)
+    posts.Get("/:id", ...)
+
+    mux := dmx.New()
+    mux.MountAt("/posts", posts)
 
 
 ## License
