@@ -27,8 +27,7 @@ func (n NotFound) AllowedMethods(req *http.Request) ([]string, bool) {
 			continue
 		}
 
-		_, ok := v.Match(req)
-		if ok {
+		if r := v.Match(req); r != nil {
 			meths = append(meths, k)
 		}
 	}

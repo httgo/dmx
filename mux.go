@@ -43,7 +43,7 @@ func (m Mux) MountAt(pat string, mux ...Mux) {
 // stack the mux into a middleware chain
 func (m Mux) Then(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if res, ok := Match(m, req); ok {
+		if res := Match(m, req); res != nil {
 			res.ServeHTTP(w, req)
 			return
 		}
@@ -54,12 +54,12 @@ func (m Mux) Then(h http.Handler) http.Handler {
 
 // Match returns a matching resources based on a matching pattern to path and
 // request method
-func Match(m Mux, req *http.Request) (*resource, bool) {
+func Match(m Mux, req *http.Request) *resource {
 	if r, ok := m[req.Method]; ok {
 		return r.Match(req)
 	}
 
-	return nil, false
+	return nil
 }
 
 func (m *Mux) Get(pat string, h http.Handler) {

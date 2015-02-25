@@ -9,15 +9,15 @@ import (
 type resources []*resource
 
 // Match returns a matching resources based on a matching pattern to path
-func (r resources) Match(req *http.Request) (*resource, bool) {
+func (r resources) Match(req *http.Request) *resource {
 	for _, v := range r {
 		p, ok := urlp.Match(v.Pattern, req.URL.Path)
 		if ok {
 			params(p, req.URL)
-			return v, ok
+			return v
 		}
 	}
-	return nil, false
+	return nil
 }
 
 func params(p []string, u *url.URL) {
