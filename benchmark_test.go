@@ -9,90 +9,113 @@ var h = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 	//
 })
 
-// taken from bmizerany/pat for comparison
-func BenchmarkPatternMatchingOneRoute(b *testing.B) {
+func BenchmarkMatchExactRoute(b *testing.B) {
 	mux := New()
-	mux.Get("/hello/:name", h)
-	h := mux.Then(NotFound(mux))
+	mux.GETFunc("/hello/blake", h)
+
+	b.ReportAllocs()
+	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
 		b.StopTimer()
+
 		r, err := http.NewRequest("GET", "/hello/blake", nil)
 		if err != nil {
 			b.Fatal(err)
 		}
+
 		b.StartTimer()
-		h.ServeHTTP(nil, r)
+
+		mux.ServeHTTP(nil, r)
 	}
 }
 
-func BenchmarkPatternMatchingMultipleRoutes(b *testing.B) {
+func BenchmarkMatchOneRouteWithOneParam(b *testing.B) {
 	mux := New()
-	mux.Get("/h/:name", h)
-	mux.Get("/he/:name", h)
-	mux.Get("/hel/:name", h)
-	mux.Get("/hell/:name", h)
-	mux.Get("/hellow/:name", h)
-	mux.Get("/hellowo/:name", h)
-	mux.Get("/hellowor/:name", h)
-	mux.Get("/helloworl/:name", h)
-	mux.Get("/helloworld/:name", h)
-	mux.Get("/hello/:name", h)
-	h := mux.Then(NotFound(mux))
+	mux.GETFunc("/hello/:name", h)
+
+	b.ReportAllocs()
+	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
 		b.StopTimer()
+
 		r, err := http.NewRequest("GET", "/hello/blake", nil)
 		if err != nil {
 			b.Fatal(err)
 		}
+
 		b.StartTimer()
-		h.ServeHTTP(nil, r)
+
+		mux.ServeHTTP(nil, r)
 	}
 }
 
-func BenchmarkPatternMatchingOneRouteWithFormat(b *testing.B) {
+func BenchmarkMatchOneRouteWithOneParamMountedToOneMiddleware(b *testing.B) {
+	a := New()
+	a.GETFunc("/hello/:name", h)
+
 	mux := New()
-	mux.Get("/hello/:name.:format", h)
-	h := mux.Then(NotFound(mux))
+	mux.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			next.ServeHTTP(w, req)
+		})
+	})
+	mux.Mount(a)
+
+	b.ReportAllocs()
+	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
 		b.StopTimer()
-		r, err := http.NewRequest("GET", "/hello/blake.html", nil)
+
+		r, err := http.NewRequest("GET", "/hello/blake", nil)
 		if err != nil {
 			b.Fatal(err)
 		}
+
 		b.StartTimer()
-		h.ServeHTTP(nil, r)
+
+		mux.ServeHTTP(nil, r)
 	}
 }
 
-func BenchmarkPatternMatchingMultipleRoutesWithFormat(b *testing.B) {
+func BenchmarkMatchRouteWithOneParamAtTheEndOfaListOfSimilarPaths(
+	b *testing.B) {
+
 	mux := New()
-	mux.Get("/h/:name", h)
-	mux.Get("/he/:name.:format", h)
-	mux.Get("/hel/:name", h)
-	mux.Get("/hell/:name.:format", h)
-	mux.Get("/hellow/:name", h)
-	mux.Get("/hellowo/:name.:format", h)
-	mux.Get("/hellowor/:name", h)
-	mux.Get("/helloworl/:name.:format", h)
-	mux.Get("/helloworld/:name", h)
-	mux.Get("/hello/:name.:format", h)
-	h := mux.Then(NotFound(mux))
+	mux.GETFunc("/h/:name", h)
+	mux.GETFunc("/he/:name", h)
+	mux.GETFunc("/hel/:name", h)
+	mux.GETFunc("/hell/:name", h)
+	mux.GETFunc("/hellow/:name", h)
+	mux.GETFunc("/hellowo/:name", h)
+	mux.GETFunc("/hellowor/:name", h)
+	mux.GETFunc("/helloworl/:name", h)
+	mux.GETFunc("/helloworld/:name", h)
+	mux.GETFunc("/hello/:name", h)
+
+	b.ReportAllocs()
+	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
 		b.StopTimer()
-		r, err := http.NewRequest("GET", "/hello/blake.html", nil)
+
+		r, err := http.NewRequest("GET", "/hello/blake", nil)
 		if err != nil {
 			b.Fatal(err)
 		}
+
 		b.StartTimer()
-		h.ServeHTTP(nil, r)
+
+		mux.ServeHTTP(nil, r)
 	}
 }
 
-// BenchmarkPatternMatchingOneRoute                         1000000              1085 ns/op
-// BenchmarkPatternMatchingMultipleRoutes                   1000000              1621 ns/op
-// BenchmarkPatternMatchingOneRouteWithFormat               1000000              1342 ns/op
-// BenchmarkPatternMatchingMultipleRoutesWithFormat         1000000              2581 ns/op
+// Chrome Pixel 2015 (LS) - Secure shell - go1.4.2 linux/amd64
+// PASS
+// BenchmarkMatchExactRoute                                        20000000               102 ns/op               0 B/op          0 allocs/op
+// BenchmarkMatchOneRouteWithOneParam                               2000000               816 ns/op              48 B/op          2 allocs/op
+// BenchmarkMatchOneRouteWithOneParamMountedToOneMiddleware         2000000               870 ns/op              48 B/op          2 allocs/op
+// BenchmarkMatchRouteWithOneParamAtTheEndOfaListOfSimilarPaths     1000000              1053 ns/op              48 B/op          2 allocs/op
+// ok      github.com/httgo/dmxr   115.220s

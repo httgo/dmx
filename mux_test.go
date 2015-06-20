@@ -1,255 +1,313 @@
 package dmx
 
 import (
-	"fmt"
-	"gopkg.in/nowk/assert.v2"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"gopkg.in/nowk/assert.v2"
 )
 
-func hfunc(s string) http.Handler {
+func hFunc(str string) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		w.Write([]byte(str))
+	}
+}
+
+func mFunc(a, b string) MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			w.Write([]byte(a))
+			next.ServeHTTP(w, req)
+			w.Write([]byte(b))
+		})
+	}
+}
+
+func send(
+	t *testing.T,
+	m *Mux,
+	meth, path string,
+	b io.Reader) *httptest.ResponseRecorder {
+
+	w := httptest.NewRecorder()
+
+	req, err := http.NewRequest(meth, path, b)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m.ServeHTTP(w, req)
+
+	return w
+}
+
+var auth = func(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte(s))
+		if req.URL.Query().Get("auth") == "true" {
+			next.ServeHTTP(w, req)
+		} else {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("not authorized"))
+		}
 	})
 }
 
-func TestMethodPatternDuplicationPanics(t *testing.T) {
-	for _, v := range []string{
-		"",
-		"/posts",
-	} {
-		s := v
-		if s == "" {
-			s = "/"
+var methodOverride = func(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Query().Get("_method") == "PUT" {
+			req.Method = "PUT"
 		}
 
-		{
-			mux := New()
-			assert.Panic(t, fmt.Sprintf("error: mux: POST %s is already defined", s),
-				func() {
-					mux.Add(v, hfunc(""), "POST", "POST")
-				})
-		}
-		{
-			mux := New()
-			assert.Panic(t, fmt.Sprintf("error: mux: POST %s is already defined", s),
-				func() {
-					mux.Add(v+"/", hfunc(""), "POST")
-					mux.Add(v, hfunc(""), "POST")
-				})
-		}
-		{
-			mux := New()
-			assert.Panic(t, fmt.Sprintf("error: mux: POST %s is already defined", s),
-				func() {
-					mux.Add(v, hfunc(""), "POST")
-					mux.Add(v+"/", hfunc(""), "POST")
-				})
-		}
+		next.ServeHTTP(w, req)
+	})
+}
+
+var stop = func(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Write([]byte("<stop>"))
+	})
+}
+
+func TestBasicRouting(t *testing.T) {
+	mux := New()
+	mux.GETFunc("/a", hFunc("a"))
+	mux.GETFunc("/b", hFunc("b"))
+	mux.GETFunc("/c", hFunc("c"))
+
+	for _, v := range []struct {
+		m, p, b string
+	}{
+		{"GET", "/a", "a"},
+		{"GET", "/b", "b"},
+		{"GET", "/c", "c"},
+
+		{"GET", "/not/found", "404 page not found\n"},
+	} {
+		w := send(t, mux, v.m, v.p, nil)
+		assert.Equal(t, v.b, w.Body.String())
 	}
 }
 
-func TestDispatchesToMatchingResource(t *testing.T) {
-	mux := New()
-	mux.Add("/posts/:post_id/comments/:id", hfunc(""), "PUT", "PATCH")
-	mux.Add("/posts/:post_id/comments", hfunc(""), "POST")
-	mux.Add("/posts/:post_id/comments", hfunc(""), "GET")
-	mux.Add("/posts/:id", hfunc(""), "PUT", "PATCH")
-	mux.Add("/posts", hfunc(""), "POST")
-	mux.Add("/posts", hfunc(""), "GET")
-	mux.Add("/", hfunc(""), "GET")
+func TestBasicRoutingThroughMountedMux(t *testing.T) {
+	c := New()
+	c.GETFunc("/c", hFunc("c"))
 
-	for k, v := range map[string][]struct {
-		u string
-		c int
+	b := New()
+	b.GETFunc("/b", hFunc("b"))
+	b.Mount(c)
+
+	a := New()
+	a.GETFunc("/a", hFunc("a"))
+	a.Mount(b)
+
+	for _, v := range []struct {
+		m, p, b string
 	}{
-		"GET": {
-			{"/", 200},
-			{"/posts", 200},
-			{"/posts/123", 405},
-			{"/posts/123/comments", 200},
-			{"/posts/123/comments/456", 405},
-			{"/posts/123/author", 404},
-		},
-		"POST": {
-			{"/", 405},
-			{"/posts", 200},
-			{"/posts/123", 405},
-			{"/posts/123/comments", 200},
-			{"/posts/123/comments/456", 405},
-			{"/posts/123/author", 404},
-		},
-		"PUT": {
-			{"/", 405},
-			{"/posts", 405},
-			{"/posts/123", 200},
-			{"/posts/123/comments", 405},
-			{"/posts/123/comments/456", 200},
-			{"/posts/123/author", 404},
-		},
-		"PATCH": {
-			{"/", 405},
-			{"/posts", 405},
-			{"/posts/123", 200},
-			{"/posts/123/comments", 405},
-			{"/posts/123/comments/456", 200},
-			{"/posts/123/author", 404},
-		},
-		"DELETE": {
-			{"/", 405},
-			{"/posts", 405},
-			{"/posts/123", 405},
-			{"/posts/123/comments", 405},
-			{"/posts/123/comments/456", 405},
-			{"/posts/123/author", 404},
-		},
-	} {
-		for _, r := range v {
-			w := httptest.NewRecorder()
+		{"GET", "/a", "a"},
+		{"GET", "/b", "b"},
+		{"GET", "/c", "c"},
 
-			req, err := http.NewRequest(k, fmt.Sprintf("http://www.com%s", r.u), nil)
-			if err != nil {
-				t.Fatal(err)
+		{"GET", "/not/found", "404 page not found\n"},
+	} {
+		w := send(t, a, v.m, v.p, nil)
+		assert.Equal(t, v.b, w.Body.String())
+	}
+}
+
+func TestNotFoundAlwaysBubblesUpToTheMainMuxsElse(t *testing.T) {
+	t.Skip("TODO")
+}
+
+func TestMiddlewaresAreExtendedDownTheMountChain(t *testing.T) {
+	c := New()
+	c.Use(mFunc("c", ""))
+	c.GETFunc("/d", hFunc("d"))
+
+	b := New()
+	b.Use(mFunc("b", ""))
+	b.Mount(c)
+
+	a := New()
+	a.Use(mFunc("a", ""))
+	a.Mount(b)
+
+	for _, v := range []struct {
+		m, p, b string
+	}{
+		{"GET", "/d", "abcd"},
+
+		{"GET", "/not/found", "404 page not found\n"},
+	} {
+		w := send(t, a, v.m, v.p, nil)
+		assert.Equal(t, v.b, w.Body.String())
+	}
+}
+
+func TestMiddlewaresWrapEachOTher(t *testing.T) {
+	c := New()
+	c.Use(mFunc("c", "c"))
+	c.GETFunc("/d", hFunc("d"))
+
+	b := New()
+	b.Use(mFunc("b", "b"))
+	b.Mount(c)
+
+	a := New()
+	a.Use(mFunc("a", "a"))
+	a.Mount(b)
+
+	for _, v := range []struct {
+		m, p, b string
+	}{
+		{"GET", "/d", "abcdcba"},
+
+		{"GET", "/not/found", "404 page not found\n"},
+	} {
+		w := send(t, a, v.m, v.p, nil)
+		assert.Equal(t, v.b, w.Body.String())
+	}
+}
+
+func TestMountingCopiesTheIncomingMuxLeavingOriginalUntouched(t *testing.T) {
+	t.Skip("TODO")
+}
+
+func TestMiddlewaresAreNextable(t *testing.T) {
+	mux := New()
+	mux.Use(mFunc("a", ""))
+	mux.Use(mFunc("b", ""))
+	mux.GETFunc("/c", hFunc("c"))
+
+	for _, v := range []struct {
+		m, p, b string
+	}{
+		{"GET", "/c", "abc"},
+
+		{"GET", "/not/found", "404 page not found\n"},
+	} {
+		w := send(t, mux, v.m, v.p, nil)
+		assert.Equal(t, v.b, w.Body.String())
+	}
+}
+
+func TestMiddlewareStopsRequestWhenNoNext(t *testing.T) {
+	mux := New()
+	mux.Use(mFunc("a", ""))
+	mux.Use(stop)
+	mux.Use(mFunc("b", ""))
+	mux.GETFunc("/c", hFunc("c"))
+
+	for _, v := range []struct {
+		m, p, b string
+	}{
+		{"GET", "/c", "a<stop>"},
+
+		{"GET", "/not/found", "404 page not found\n"},
+	} {
+		w := send(t, mux, v.m, v.p, nil)
+		assert.Equal(t, v.b, w.Body.String())
+	}
+}
+
+func TestNotFoundDoesNotExecuteMiddlewares(t *testing.T) {
+	mux := New()
+	mux.Use(mFunc("a", "a"))
+	mux.Use(stop)
+
+	w := send(t, mux, "GET", "/does/not/exist", nil)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Equal(t, "404 page not found\n", w.Body.String())
+}
+
+func TestMustIsCalledBeforeMatch(t *testing.T) {
+	mux := New()
+	mux.Must(methodOverride)
+	mux.PUTFunc("/a", hFunc("a"))
+
+	w := send(t, mux, "POST", "/a?_method=PUT", nil)
+	assert.Equal(t, "a", w.Body.String())
+}
+
+func TestMustIsCalledOnNotFound(t *testing.T) {
+	mux := New()
+	mux.Must(mFunc("-- ", " --"))
+
+	w := send(t, mux, "GET", "/not/found", nil)
+	assert.Equal(t, "-- 404 page not found\n --", w.Body.String())
+}
+
+func TestWalkingIntoMultipleMuxRespectsParentMiddlewares(t *testing.T) {
+	b := New()
+	b.GETFunc("/b", hFunc("b"))
+
+	c := New()
+	c.GETFunc("/c", hFunc("c"))
+
+	a := New()
+	a.Use(auth)
+	a.GETFunc("/a", hFunc("a"))
+	a.Mount(b)
+	a.Mount(c)
+
+	for _, v := range []struct {
+		m, p, b string
+	}{
+		{"GET", "/c", "not authorized"},
+		{"GET", "/b", "not authorized"},
+		{"GET", "/a", "not authorized"},
+		{"GET", "/c?auth=true", "c"},
+		{"GET", "/b?auth=true", "b"},
+		{"GET", "/a?auth=true", "a"},
+
+		{"GET", "/not/found", "404 page not found\n"},
+	} {
+		w := send(t, a, v.m, v.p, nil)
+
+		assert.Equal(t, v.b, w.Body.String(), v.m, v.p)
+	}
+}
+
+func TestMultiAuthsThroughNestedMounts(t *testing.T) {
+	b := New()
+	b.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if req.URL.Query().Get("auth2") == "true" {
+				next.ServeHTTP(w, req)
+			} else {
+				w.WriteHeader(http.StatusUnauthorized)
+				w.Write([]byte("not authorized - 2"))
 			}
-			mux.Then(NotFound(mux)).ServeHTTP(w, req)
-
-			assert.Equal(t, r.c, w.Code, k, " ", r.u)
-		}
-	}
-}
-
-func TestNamedParamValues(t *testing.T) {
-	var ph = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		q := req.URL.Query()
-		fmt.Fprintf(w, "post_id=%s&id=%s", q.Get(":post_id"), q.Get(":id"))
+		})
 	})
+	b.GETFunc("/b", hFunc("b"))
 
-	mux := New()
-	mux.Add("/posts/:post_id/tags/:id", ph, "GET")
+	c := New()
+	c.GETFunc("/c", hFunc("c"))
 
-	w := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "http://www.com/posts/123/tags/456", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	mux.Then(NotFound(mux)).ServeHTTP(w, req)
-	assert.Equal(t, "post_id=123&id=456", w.Body.String())
-}
-
-func TestHandlerFuncShortcuts(t *testing.T) {
-	var fn = func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte(fmt.Sprintf("Hello %s!", req.Method)))
-	}
-
-	mux := New()
-	mux.GetFunc("/say-you", fn)
-	mux.HeadFunc("/say-you", fn)
-	mux.PostFunc("/say-you", fn)
-	mux.PutFunc("/say-you", fn)
-	mux.PatchFunc("/say-you", fn)
-	mux.DelFunc("/say-you", fn)
-
-	for _, v := range []string{
-		"GET",
-		"HEAD",
-		"POST",
-		"PUT",
-		"PATCH",
-		"DELETE",
-	} {
-		w := httptest.NewRecorder()
-		req, err := http.NewRequest(v, "/say-you", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		mux.Then(NotFound(mux)).ServeHTTP(w, req)
-		assert.Equal(t, fmt.Sprintf("Hello %s!", v), w.Body.String())
-	}
-}
-
-func TestMountMuxWithinMux(t *testing.T) {
 	a := New()
-	a.Get("/posts", hfunc("[GET] /posts"))
-
-	b := New()
-	b.Get("/posts/comments", hfunc("[GET] /posts/comments"))
-
-	mux := New()
-	mux.Mount(a, b)
-	h := mux.Then(NotFound(mux))
+	a.Use(auth)
+	a.GETFunc("/a", hFunc("a"))
+	a.Mount(b)
+	a.Mount(c)
 
 	for _, v := range []struct {
-		Method, Path, Body string
+		m, p, b string
 	}{
-		{"GET", "/posts", "[GET] /posts"},
-		{"GET", "/posts/comments", "[GET] /posts/comments"},
+		{"GET", "/b?auth=true", "not authorized - 2"},
+		{"GET", "/b?auth=true&auth2=true", "b"},
+		{"GET", "/b?auth2=true", "not authorized"},
+		{"GET", "/c?auth=true", "c"},
+		{"GET", "/c?auth=true&auth2=true", "c"},
+		{"GET", "/c?auth2=true", "not authorized"},
+		{"GET", "/a?auth=true", "a"},
+		{"GET", "/a?auth=true&auth2=true", "a"},
+		{"GET", "/a?auth2=true", "not authorized"},
+
+		{"GET", "/not/found", "404 page not found\n"},
 	} {
-		w := httptest.NewRecorder()
-		req, err := http.NewRequest(v.Method, v.Path, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		h.ServeHTTP(w, req)
-		assert.Equal(t, v.Body, w.Body.String())
+		w := send(t, a, v.m, v.p, nil)
+		assert.Equal(t, v.b, w.Body.String(), v.m, v.p)
 	}
-}
-
-func TestMountMuxWithNamespace(t *testing.T) {
-	a := New()
-	a.Get("/", hfunc("[GET] /posts"))
-
-	b := New()
-	b.Get("/comments", hfunc("[GET] /posts/comments"))
-
-	mux := New()
-	mux.MountAt("/posts", a, b)
-	h := mux.Then(NotFound(mux))
-
-	for _, v := range []struct {
-		Method, Path, Body string
-	}{
-		{"GET", "/posts", "[GET] /posts"},
-		{"GET", "/posts/comments", "[GET] /posts/comments"},
-	} {
-		w := httptest.NewRecorder()
-		req, err := http.NewRequest(v.Method, v.Path, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		h.ServeHTTP(w, req)
-		assert.Equal(t, v.Body, w.Body.String())
-	}
-}
-
-func TestMountMethodPatternDuplicationPanic(t *testing.T) {
-	a := New()
-	a.Get("/posts", hfunc(""))
-
-	mux := New()
-	mux.Get("/posts", hfunc(""))
-
-	assert.Panic(t, "error: mux: GET /posts is already defined", func() {
-		mux.Mount(a)
-	})
-}
-
-func TestMountPatternParams(t *testing.T) {
-	a := New()
-	a.GetFunc("/comments", func(w http.ResponseWriter, req *http.Request) {
-		id := req.URL.Query().Get(":id")
-		w.Write([]byte(fmt.Sprintf("id:%s", id)))
-	})
-
-	mux := New()
-	mux.MountAt("/posts/:id", a)
-
-	w := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "/posts/123/comments", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	mux.Then(NotFound(mux)).ServeHTTP(w, req)
-	assert.Equal(t, "id:123", w.Body.String())
 }

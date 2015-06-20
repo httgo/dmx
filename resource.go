@@ -1,50 +1,83 @@
 package dmx
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
+	"net/url"
+
+	"gopkg.in/nowk/urlp.v2"
 )
+
+type resources map[string][]*resource
+
+func (r resources) Then(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		h, ok := r.Match(req)
+		if ok {
+			h.ServeHTTP(w, req)
+
+			return
+		}
+
+		next.ServeHTTP(w, req)
+	})
+}
+
+// params attaches the url parameters to url's query string
+func params(p []string, u *url.URL) {
+	n := len(p)
+	for i := 0; i < n; {
+		u.RawQuery = u.RawQuery + "&" + p[i] + "=" + p[i+1]
+		i = i + 2
+	}
+}
+
+func (r resources) Match(req *http.Request) (http.Handler, bool) {
+	m, ok := r[req.Method]
+	if !ok {
+		return nil, false
+	}
+
+	for _, v := range m {
+		p, ok := urlp.Match(v.Path, req.URL.Path)
+		if !ok {
+			continue
+		}
+
+		params(p, req.URL)
+
+		return v, true
+	}
+
+	return nil, false
+}
 
 type resource struct {
 	http.Handler
 
-	// Methods are the HTTP methods supported by this resource
-	Methods []string
-
-	// Pattern is the path pattern for this resource
-	Pattern string
+	Method string
+	Path   *urlp.Path
 }
 
-func NewResource(meths []string, pat string, h http.Handler) *resource {
+func parsemh(v ...interface{}) ([]Middleware, http.Handler) {
+	n := len(v) - 1
+	m := make([]Middleware, 0, n+1)
+	for _, w := range v[:n] {
+		m = append(m, w.(Middleware))
+	}
+
+	return m, v[n].(http.Handler)
+}
+
+func newResource(meth, path string, v ...interface{}) *resource {
+	m, h := parsemh(v...)
+
 	return &resource{
-		Handler: h,
-		Methods: meths,
-		Pattern: trim(pat),
+		Handler: construct(m, h),
+		Method:  meth,
+		Path:    urlp.NewPath(path),
 	}
 }
 
-func (r *resource) Apply(mux Mux) error {
-	for _, m := range r.Methods {
-		p, ok := mux[m]
-		if ok {
-			for _, v := range p {
-				if v.Pattern == r.Pattern {
-					return fmt.Errorf("error: mux: %s %s is already defined", m, r.Pattern)
-				}
-			}
-		}
-
-		mux[m] = append(mux[m], r)
-	}
-	return nil
-}
-
-// trim trims the trailing slash. Will always return atleast "/"
-func trim(s string) string {
-	s = strings.TrimRight(s, "/")
-	if s == "" {
-		return "/"
-	}
-	return s
+func (r *resource) Prefix(m ...Middleware) {
+	r.Handler = construct(m, r.Handler)
 }
