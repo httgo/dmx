@@ -72,9 +72,9 @@ var stop = func(h http.Handler) http.Handler {
 
 func TestBasicRouting(t *testing.T) {
 	mux := New()
-	mux.GETFunc("/a", hFunc("a"))
-	mux.GETFunc("/b", hFunc("b"))
-	mux.GETFunc("/c", hFunc("c"))
+	mux.GetFunc("/a", hFunc("a"))
+	mux.GetFunc("/b", hFunc("b"))
+	mux.GetFunc("/c", hFunc("c"))
 
 	for _, v := range []struct {
 		m, p, b string
@@ -92,14 +92,14 @@ func TestBasicRouting(t *testing.T) {
 
 func TestBasicRoutingThroughMountedMux(t *testing.T) {
 	c := New()
-	c.GETFunc("/c", hFunc("c"))
+	c.GetFunc("/c", hFunc("c"))
 
 	b := New()
-	b.GETFunc("/b", hFunc("b"))
+	b.GetFunc("/b", hFunc("b"))
 	b.Mount(c)
 
 	a := New()
-	a.GETFunc("/a", hFunc("a"))
+	a.GetFunc("/a", hFunc("a"))
 	a.Mount(b)
 
 	for _, v := range []struct {
@@ -123,7 +123,7 @@ func TestNotFoundAlwaysBubblesUpToTheMainMuxsElse(t *testing.T) {
 func TestMiddlewaresAreExtendedDownTheMountChain(t *testing.T) {
 	c := New()
 	c.Use(mFunc("c", ""))
-	c.GETFunc("/d", hFunc("d"))
+	c.GetFunc("/d", hFunc("d"))
 
 	b := New()
 	b.Use(mFunc("b", ""))
@@ -148,7 +148,7 @@ func TestMiddlewaresAreExtendedDownTheMountChain(t *testing.T) {
 func TestMiddlewaresWrapEachOTher(t *testing.T) {
 	c := New()
 	c.Use(mFunc("c", "c"))
-	c.GETFunc("/d", hFunc("d"))
+	c.GetFunc("/d", hFunc("d"))
 
 	b := New()
 	b.Use(mFunc("b", "b"))
@@ -178,7 +178,7 @@ func TestMiddlewaresAreNextable(t *testing.T) {
 	mux := New()
 	mux.Use(mFunc("a", ""))
 	mux.Use(mFunc("b", ""))
-	mux.GETFunc("/c", hFunc("c"))
+	mux.GetFunc("/c", hFunc("c"))
 
 	for _, v := range []struct {
 		m, p, b string
@@ -197,7 +197,7 @@ func TestMiddlewareStopsRequestWhenNoNext(t *testing.T) {
 	mux.Use(mFunc("a", ""))
 	mux.Use(stop)
 	mux.Use(mFunc("b", ""))
-	mux.GETFunc("/c", hFunc("c"))
+	mux.GetFunc("/c", hFunc("c"))
 
 	for _, v := range []struct {
 		m, p, b string
@@ -224,7 +224,7 @@ func TestNotFoundDoesNotExecuteMiddlewares(t *testing.T) {
 func TestMustIsCalledBeforeMatch(t *testing.T) {
 	mux := New()
 	mux.Must(methodOverride)
-	mux.PUTFunc("/a", hFunc("a"))
+	mux.PutFunc("/a", hFunc("a"))
 
 	w := send(t, mux, "POST", "/a?_method=PUT", nil)
 	assert.Equal(t, "a", w.Body.String())
@@ -240,14 +240,14 @@ func TestMustIsCalledOnNotFound(t *testing.T) {
 
 func TestWalkingIntoMultipleMuxRespectsParentMiddlewares(t *testing.T) {
 	b := New()
-	b.GETFunc("/b", hFunc("b"))
+	b.GetFunc("/b", hFunc("b"))
 
 	c := New()
-	c.GETFunc("/c", hFunc("c"))
+	c.GetFunc("/c", hFunc("c"))
 
 	a := New()
 	a.Use(auth)
-	a.GETFunc("/a", hFunc("a"))
+	a.GetFunc("/a", hFunc("a"))
 	a.Mount(b)
 	a.Mount(c)
 
@@ -281,14 +281,14 @@ func TestMultiAuthsThroughNestedMounts(t *testing.T) {
 			}
 		})
 	})
-	b.GETFunc("/b", hFunc("b"))
+	b.GetFunc("/b", hFunc("b"))
 
 	c := New()
-	c.GETFunc("/c", hFunc("c"))
+	c.GetFunc("/c", hFunc("c"))
 
 	a := New()
 	a.Use(auth)
-	a.GETFunc("/a", hFunc("a"))
+	a.GetFunc("/a", hFunc("a"))
 	a.Mount(b)
 	a.Mount(c)
 

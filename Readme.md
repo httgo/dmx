@@ -22,7 +22,7 @@ A simple pattern match mux.
 
     func main() {
       mux := dmx.New()
-      mux.GET("/posts/:id", getPostHandler)
+      mux.Get("/posts/:id", getPostHandler)
 
       err := http.ListenAndServe(":3000", mux)
       if err != nil {

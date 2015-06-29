@@ -11,7 +11,7 @@ var h = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 
 func BenchmarkMatchExactRoute(b *testing.B) {
 	mux := New()
-	mux.GETFunc("/hello/blake", h)
+	mux.GetFunc("/hello/blake", h)
 
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -32,7 +32,7 @@ func BenchmarkMatchExactRoute(b *testing.B) {
 
 func BenchmarkMatchOneRouteWithOneParam(b *testing.B) {
 	mux := New()
-	mux.GETFunc("/hello/:name", h)
+	mux.GetFunc("/hello/:name", h)
 
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -53,7 +53,7 @@ func BenchmarkMatchOneRouteWithOneParam(b *testing.B) {
 
 func BenchmarkMatchOneRouteWithOneParamMountedToOneMiddleware(b *testing.B) {
 	a := New()
-	a.GETFunc("/hello/:name", h)
+	a.GetFunc("/hello/:name", h)
 
 	mux := New()
 	mux.Use(func(next http.Handler) http.Handler {
@@ -84,16 +84,16 @@ func BenchmarkMatchRouteWithOneParamAtTheEndOfaListOfSimilarPaths(
 	b *testing.B) {
 
 	mux := New()
-	mux.GETFunc("/h/:name", h)
-	mux.GETFunc("/he/:name", h)
-	mux.GETFunc("/hel/:name", h)
-	mux.GETFunc("/hell/:name", h)
-	mux.GETFunc("/hellow/:name", h)
-	mux.GETFunc("/hellowo/:name", h)
-	mux.GETFunc("/hellowor/:name", h)
-	mux.GETFunc("/helloworl/:name", h)
-	mux.GETFunc("/helloworld/:name", h)
-	mux.GETFunc("/hello/:name", h)
+	mux.GetFunc("/h/:name", h)
+	mux.GetFunc("/he/:name", h)
+	mux.GetFunc("/hel/:name", h)
+	mux.GetFunc("/hell/:name", h)
+	mux.GetFunc("/hellow/:name", h)
+	mux.GetFunc("/hellowo/:name", h)
+	mux.GetFunc("/hellowor/:name", h)
+	mux.GetFunc("/helloworl/:name", h)
+	mux.GetFunc("/helloworld/:name", h)
+	mux.GetFunc("/hello/:name", h)
 
 	b.ReportAllocs()
 	b.ResetTimer()

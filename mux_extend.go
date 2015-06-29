@@ -6,62 +6,72 @@ import (
 
 // Extends the Mux struct with basic short methods
 
-func (m *Mux) GET(path string, w ...interface{}) *Mux {
+func (m *Mux) Get(path string, w ...interface{}) *Mux {
 	return m.Add("GET", path, w...)
 }
 
-func (m *Mux) POST(path string, w ...interface{}) *Mux {
+func (m *Mux) Post(path string, w ...interface{}) *Mux {
 	return m.Add("POST", path, w...)
 }
 
-func (m *Mux) PUT(path string, w ...interface{}) *Mux {
+func (m *Mux) Put(path string, w ...interface{}) *Mux {
 	return m.Add("PUT", path, w...)
 }
 
-func (m *Mux) PATCH(path string, w ...interface{}) *Mux {
+func (m *Mux) Patch(path string, w ...interface{}) *Mux {
 	return m.Add("PATCH", path, w...)
 }
 
-func (m *Mux) DELETE(path string, w ...interface{}) *Mux {
+func (m *Mux) Delete(path string, w ...interface{}) *Mux {
 	return m.Add("DELETE", path, w...)
 }
 
-func (m *Mux) HEAD(path string, w ...interface{}) *Mux {
+func (m *Mux) Head(path string, w ...interface{}) *Mux {
 	return m.Add("HEAD", path, w...)
 }
 
-func (m *Mux) GETFunc(
-	path string, fn func(http.ResponseWriter, *http.Request)) *Mux {
-
-	return m.GET(path, http.HandlerFunc(fn))
+func (m *Mux) Options(path string, w ...interface{}) *Mux {
+	return m.Add("OPTIONS", path, w...)
 }
 
-func (m *Mux) POSTFunc(
+func (m *Mux) GetFunc(
 	path string, fn func(http.ResponseWriter, *http.Request)) *Mux {
 
-	return m.POST(path, http.HandlerFunc(fn))
+	return m.Get(path, http.HandlerFunc(fn))
 }
 
-func (m *Mux) PUTFunc(
+func (m *Mux) PostFunc(
 	path string, fn func(http.ResponseWriter, *http.Request)) *Mux {
 
-	return m.PUT(path, http.HandlerFunc(fn))
+	return m.Post(path, http.HandlerFunc(fn))
 }
 
-func (m *Mux) PATCHFunc(
+func (m *Mux) PutFunc(
 	path string, fn func(http.ResponseWriter, *http.Request)) *Mux {
 
-	return m.PATCH(path, http.HandlerFunc(fn))
+	return m.Put(path, http.HandlerFunc(fn))
 }
 
-func (m *Mux) DELETEFunc(
+func (m *Mux) PatchFunc(
 	path string, fn func(http.ResponseWriter, *http.Request)) *Mux {
 
-	return m.DELETE(path, http.HandlerFunc(fn))
+	return m.Patch(path, http.HandlerFunc(fn))
 }
 
-func (m *Mux) HEADFunc(
+func (m *Mux) DeleteFunc(
 	path string, fn func(http.ResponseWriter, *http.Request)) *Mux {
 
-	return m.HEAD(path, http.HandlerFunc(fn))
+	return m.Delete(path, http.HandlerFunc(fn))
+}
+
+func (m *Mux) HeadFunc(
+	path string, fn func(http.ResponseWriter, *http.Request)) *Mux {
+
+	return m.Head(path, http.HandlerFunc(fn))
+}
+
+func (m *Mux) OptionsFunc(
+	path string, fn func(http.ResponseWriter, *http.Request)) *Mux {
+
+	return m.Options(path, http.HandlerFunc(fn))
 }
